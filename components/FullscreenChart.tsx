@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, ReactNode } from "react";
 import PriceChart from "./PriceChart";
 import TimeframeSelector from "./TimeframeSelector";
 import IndicatorPanel from "./IndicatorPanel";
 import ChartSettings from "./ChartSettings";
 
-export default function FullscreenChart() {
+interface FullscreenChartProps {
+  children?: ReactNode;
+}
+
+export default function FullscreenChart({ children }: FullscreenChartProps) {
   const [symbol, setSymbol] = useState("BTCUSD");
   const [timeframe, setTimeframe] = useState("1h");
 
@@ -22,11 +26,13 @@ export default function FullscreenChart() {
     <div className="w-full h-full flex flex-col gap-4 p-4">
       <div className="flex justify-between items-center">
         <h1 className="text-xl font-bold">{symbol}</h1>
-
         <TimeframeSelector onSelect={setTimeframe} />
       </div>
 
       <PriceChart symbol={symbol} timeframe={timeframe} />
+
+      {/* Render children passed from ChartContainer */}
+      {children}
 
       <div className="flex justify-between items-center">
         <IndicatorPanel onToggle={handleIndicatorToggle} />
