@@ -2,24 +2,27 @@
 
 import { useEffect, useRef } from "react";
 
-export default function Chart({ refreshRate = 15000 }) {
-  const chartRef = useRef<HTMLDivElement>(null);
+export default function Chart() {
+  const chartRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!chartRef.current) return;
+    // Ensure this only runs in the browser
+    if (typeof window === "undefined") return;
 
+    // Create script element
     const tvScript = document.createElement("script");
     tvScript.src = "https://s3.tradingview.com/tv.js";
     tvScript.async = true;
 
     tvScript.onload = () => {
-      if (window.TradingView) {
+      // Ensure TradingView exists AND ref exists
+      if (window.TradingView && chartRef.current) {
         new window.TradingView.widget({
           autosize: true,
           symbol: "AAPL",
-          interval: "D",
+          interval: "1",
           timezone: "Etc/UTC",
-          theme: "dark",
+          theme: "light",
           style: "1",
           locale: "en",
           container_id: chartRef.current.id,
@@ -29,29 +32,17 @@ export default function Chart({ refreshRate = 15000 }) {
 
     document.body.appendChild(tvScript);
 
-    const interval = setInterval(() => {
-      if (window.TradingView) {
-        new window.TradingView.widget({
-          autosize: true,
-          symbol: "AAPL",
-          interval: "D",
-          timezone: "Etc/UTC",
-          theme: "dark",
-          style: "1",
-          locale: "en",
-          container_id: chartRef.current.id,
-        });
-      }
-    }, refreshRate);
-
-    return () => clearInterval(interval);
-  }, [refreshRate]);
+    // Cleanup on unmount
+    return () => {
+      tvScript.remove();
+    };
+  }, []);
 
   return (
     <div
-      id={`tv_chart_${Math.random().toString(36).substring(2)}`}
+      id="tradingview_chart"
       ref={chartRef}
-      className="w-full h-[400px] rounded-lg overflow-hidden"
+      style={{ width: "100%", height: "500px" }}
     />
   );
 }
