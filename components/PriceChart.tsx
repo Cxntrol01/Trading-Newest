@@ -7,6 +7,8 @@ import {
   ISeriesApi,
 } from "lightweight-charts";
 
+import type { UTCTimestamp } from "lightweight-charts";
+
 import { fetchCandles } from "@/lib/fetchCandles";
 import { calculateSMA, calculateEMA } from "@/lib/indicators";
 
@@ -98,7 +100,7 @@ export default function PriceChart({
         // Candlestick series must NOT include volume
         candleSeries.current?.setData(
           fixedCandles.map((c: any) => ({
-            time: c.time as number,
+            time: c.time as unknown as UTCTimestamp,
             open: c.open,
             high: c.high,
             low: c.low,
@@ -109,7 +111,7 @@ export default function PriceChart({
         // Volume series uses corrected time
         volumeSeries.current?.setData(
           fixedCandles.map((c: any) => ({
-            time: c.time as number,
+            time: c.time as unknown as UTCTimestamp,
             value: c.volume,
           }))
         );
@@ -152,7 +154,7 @@ export default function PriceChart({
 
         // Candlestick update must NOT include volume
         candleSeries.current?.update({
-          time: liveCandle.time as number,
+          time: liveCandle.time as unknown as UTCTimestamp,
           open: liveCandle.open,
           high: liveCandle.high,
           low: liveCandle.low,
@@ -160,7 +162,7 @@ export default function PriceChart({
         });
 
         volumeSeries.current?.update({
-          time: liveCandle.time as number,
+          time: liveCandle.time as unknown as UTCTimestamp,
           value: liveCandle.volume,
         });
 
@@ -223,4 +225,4 @@ export default function PriceChart({
       ></div>
     </div>
   );
-}
+          }
