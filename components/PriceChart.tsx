@@ -184,26 +184,28 @@ export default function PriceChart({
     const timeTooltip = document.getElementById("time-tooltip");
 
     chartInstance.current.subscribeCrosshairMove((param) => {
-      if (!param || !param.time || !param.seriesPrices) {
+      const p = param as any;
+
+      if (!p || !p.time || !p.seriesPrices) {
         priceTooltip!.style.display = "none";
         timeTooltip!.style.display = "none";
         return;
       }
 
-      const candlePrice = param.seriesPrices.get(candleSeries.current!);
+      const candlePrice = p.seriesPrices.get(candleSeries.current!);
 
       if (candlePrice) {
         priceTooltip!.innerText = candlePrice.close.toFixed(2);
         priceTooltip!.style.display = "block";
-        priceTooltip!.style.top = param.point?.y + "px";
+        priceTooltip!.style.top = p.point?.y + "px";
       }
 
-      const utc = new Date((param.time as number) * 1000);
+      const utc = new Date((p.time as number) * 1000);
       const timeStr = utc.toLocaleString();
 
       timeTooltip!.innerText = timeStr;
       timeTooltip!.style.display = "block";
-      timeTooltip!.style.left = param.point?.x + "px";
+      timeTooltip!.style.left = p.point?.x + "px";
     });
   }, []);
 
