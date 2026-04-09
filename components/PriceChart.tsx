@@ -97,7 +97,7 @@ export default function PriceChart({
 
         // FIX: Candlestick series must NOT include volume
         candleSeries.current?.setData(
-          fixedCandles.map((c) => ({
+          fixedCandles.map((c: any) => ({
             time: c.time,
             open: c.open,
             high: c.high,
@@ -108,7 +108,7 @@ export default function PriceChart({
 
         // FIX: Volume series uses corrected time
         volumeSeries.current?.setData(
-          fixedCandles.map((c) => ({
+          fixedCandles.map((c: any) => ({
             time: c.time,
             value: c.volume,
           }))
@@ -223,4 +223,4 @@ export default function PriceChart({
       ></div>
     </div>
   );
-            }
+          }
