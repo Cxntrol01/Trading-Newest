@@ -171,6 +171,4 @@ export default function ChartWorkspace() {
       </div>
     </div>
   );
-            }
-
-// force redeploy
+          }
