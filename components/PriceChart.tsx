@@ -83,7 +83,7 @@ export default function PriceChart({
       const data = await fetchCandles(symbol, timeframe);
 
       if (data?.candles) {
-        // FIX: Convert initial candles from ms → seconds
+        // Convert initial candles from ms → seconds
         const fixedCandles = data.candles.map((c: any) => ({
           time: Math.floor(c.time / 1000),
           open: c.open,
@@ -95,10 +95,10 @@ export default function PriceChart({
 
         setCandles(fixedCandles);
 
-        // FIX: Candlestick series must NOT include volume
+        // Candlestick series must NOT include volume
         candleSeries.current?.setData(
           fixedCandles.map((c: any) => ({
-            time: c.time,
+            time: c.time as number,
             open: c.open,
             high: c.high,
             low: c.low,
@@ -106,10 +106,10 @@ export default function PriceChart({
           }))
         );
 
-        // FIX: Volume series uses corrected time
+        // Volume series uses corrected time
         volumeSeries.current?.setData(
           fixedCandles.map((c: any) => ({
-            time: c.time,
+            time: c.time as number,
             value: c.volume,
           }))
         );
@@ -150,9 +150,9 @@ export default function PriceChart({
           updated.push(liveCandle);
         }
 
-        // FIX: Candlestick update must NOT include volume
+        // Candlestick update must NOT include volume
         candleSeries.current?.update({
-          time: liveCandle.time,
+          time: liveCandle.time as number,
           open: liveCandle.open,
           high: liveCandle.high,
           low: liveCandle.low,
@@ -160,7 +160,7 @@ export default function PriceChart({
         });
 
         volumeSeries.current?.update({
-          time: liveCandle.time,
+          time: liveCandle.time as number,
           value: liveCandle.volume,
         });
 
@@ -223,4 +223,4 @@ export default function PriceChart({
       ></div>
     </div>
   );
-          }
+}
