@@ -3,14 +3,14 @@
 import { useState } from "react";
 
 interface RefreshIntervalProps {
-  onSave?: (value: number) => void;
+  onChange?: (value: number) => void;
 }
 
-export default function RefreshInterval({ onSave }: RefreshIntervalProps) {
+export default function RefreshInterval({ onChange }: RefreshIntervalProps) {
   const [interval, setInterval] = useState(5);
 
   const handleSave = () => {
-    if (onSave) onSave(interval);
+    if (onChange) onChange(interval);
   };
 
   return (
