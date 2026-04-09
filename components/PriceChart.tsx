@@ -39,7 +39,7 @@ export default function PriceChart({
           horzLines: { color: "#222" },
         },
         crosshair: {
-          mode: 1, // TradingView-style crosshair
+          mode: 1,
         },
         width: chartRef.current.clientWidth,
         height: 400,
@@ -83,18 +83,28 @@ export default function PriceChart({
       const data = await fetchCandles(symbol, timeframe);
 
       if (data?.candles) {
-        setCandles(data.candles);
+        // FIX: Convert initial candles from ms → seconds
+        const fixedCandles = data.candles.map((c: any) => ({
+          time: Math.floor(c.time / 1000),
+          open: c.open,
+          high: c.high,
+          low: c.low,
+          close: c.close,
+          volume: c.volume,
+        }));
 
-        candleSeries.current?.setData(data.candles);
+        setCandles(fixedCandles);
+        candleSeries.current?.setData(fixedCandles);
 
-        const volumeData = data.candles.map((c: any) => ({
+        // FIX: Volume data must use corrected time
+        const volumeData = fixedCandles.map((c: any) => ({
           time: c.time,
           value: c.volume,
         }));
         volumeSeries.current?.setData(volumeData);
 
-        smaSeries.current?.setData(calculateSMA(data.candles, 20));
-        emaSeries.current?.setData(calculateEMA(data.candles, 50));
+        smaSeries.current?.setData(calculateSMA(fixedCandles, 20));
+        emaSeries.current?.setData(calculateEMA(fixedCandles, 50));
       }
     }
 
@@ -110,7 +120,7 @@ export default function PriceChart({
       const k = data.k;
 
       const liveCandle = {
-        time: Math.floor(k.t / 1000),
+        time: Math.floor(k.t / 1000), // already correct
         open: parseFloat(k.o),
         high: parseFloat(k.h),
         low: parseFloat(k.l),
@@ -184,17 +194,15 @@ export default function PriceChart({
         className="absolute inset-0"
       />
 
-      {/* TradingView-style price tooltip */}
       <div
         id="price-tooltip"
         className="absolute right-0 bg-black/80 text-white px-2 py-1 text-sm rounded hidden pointer-events-none"
       ></div>
 
-      {/* TradingView-style time tooltip */}
       <div
         id="time-tooltip"
         className="absolute bottom-0 bg-black/80 text-white px-2 py-1 text-sm rounded hidden pointer-events-none"
       ></div>
     </div>
   );
-                           }
+}
