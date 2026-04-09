@@ -94,14 +94,25 @@ export default function PriceChart({
         }));
 
         setCandles(fixedCandles);
-        candleSeries.current?.setData(fixedCandles);
 
-        // FIX: Volume data must use corrected time
-        const volumeData = fixedCandles.map((c: any) => ({
-          time: c.time,
-          value: c.volume,
-        }));
-        volumeSeries.current?.setData(volumeData);
+        // FIX: Candlestick series must NOT include volume
+        candleSeries.current?.setData(
+          fixedCandles.map((c) => ({
+            time: c.time,
+            open: c.open,
+            high: c.high,
+            low: c.low,
+            close: c.close,
+          }))
+        );
+
+        // FIX: Volume series uses corrected time
+        volumeSeries.current?.setData(
+          fixedCandles.map((c) => ({
+            time: c.time,
+            value: c.volume,
+          }))
+        );
 
         smaSeries.current?.setData(calculateSMA(fixedCandles, 20));
         emaSeries.current?.setData(calculateEMA(fixedCandles, 50));
@@ -120,7 +131,7 @@ export default function PriceChart({
       const k = data.k;
 
       const liveCandle = {
-        time: Math.floor(k.t / 1000), // already correct
+        time: Math.floor(k.t / 1000),
         open: parseFloat(k.o),
         high: parseFloat(k.h),
         low: parseFloat(k.l),
@@ -139,7 +150,14 @@ export default function PriceChart({
           updated.push(liveCandle);
         }
 
-        candleSeries.current?.update(liveCandle);
+        // FIX: Candlestick update must NOT include volume
+        candleSeries.current?.update({
+          time: liveCandle.time,
+          open: liveCandle.open,
+          high: liveCandle.high,
+          low: liveCandle.low,
+          close: liveCandle.close,
+        });
 
         volumeSeries.current?.update({
           time: liveCandle.time,
@@ -205,4 +223,4 @@ export default function PriceChart({
       ></div>
     </div>
   );
-}
+            }
