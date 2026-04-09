@@ -2,20 +2,17 @@
 
 import { useEffect, useRef } from "react";
 
-export default function Chart() {
+export default function Chart({ refreshRate }: { refreshRate: number }) {
   const chartRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    // Ensure this only runs in the browser
     if (typeof window === "undefined") return;
 
-    // Create script element
     const tvScript = document.createElement("script");
     tvScript.src = "https://s3.tradingview.com/tv.js";
     tvScript.async = true;
 
     tvScript.onload = () => {
-      // Ensure TradingView exists AND ref exists
       if (window.TradingView && chartRef.current) {
         new window.TradingView.widget({
           autosize: true,
@@ -32,11 +29,10 @@ export default function Chart() {
 
     document.body.appendChild(tvScript);
 
-    // Cleanup on unmount
     return () => {
       tvScript.remove();
     };
-  }, []);
+  }, [refreshRate]); // optional: re-run when refreshRate changes
 
   return (
     <div
