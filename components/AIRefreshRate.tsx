@@ -3,14 +3,14 @@
 import { useState } from "react";
 
 interface AIRefreshRateProps {
-  onSave?: (value: number) => void;
+  onChange?: (value: number) => void;
 }
 
-export default function AIRefreshRate({ onSave }: AIRefreshRateProps) {
+export default function AIRefreshRate({ onChange }: AIRefreshRateProps) {
   const [rate, setRate] = useState(5);
 
   const handleSave = () => {
-    if (onSave) onSave(rate);
+    if (onChange) onChange(rate);
   };
 
   return (
