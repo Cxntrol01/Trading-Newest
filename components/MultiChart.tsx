@@ -3,15 +3,32 @@
 import { useState } from "react";
 import PriceChart from "./PriceChart";
 import SymbolSearch from "./SymbolSearch";
+import IndicatorToggles from "./IndicatorToggles";
 
 export default function MultiChart() {
   const [layout, setLayout] = useState<1 | 2 | 4>(2);
 
   const [charts, setCharts] = useState([
-    { symbol: "BTCUSDT", timeframe: "1m" },
-    { symbol: "AAPL", timeframe: "1m" },
-    { symbol: "TSLA", timeframe: "1m" },
-    { symbol: "ETHUSDT", timeframe: "1m" },
+    {
+      symbol: "BTCUSDT",
+      timeframe: "1m",
+      indicators: { sma: true, ema: true, rsi: false, macd: false, bb: false },
+    },
+    {
+      symbol: "AAPL",
+      timeframe: "1m",
+      indicators: { sma: true, ema: true, rsi: false, macd: false, bb: false },
+    },
+    {
+      symbol: "TSLA",
+      timeframe: "1m",
+      indicators: { sma: true, ema: true, rsi: false, macd: false, bb: false },
+    },
+    {
+      symbol: "ETHUSDT",
+      timeframe: "1m",
+      indicators: { sma: true, ema: true, rsi: false, macd: false, bb: false },
+    },
   ]);
 
   function updateChart(index: number, updates: any) {
@@ -30,19 +47,25 @@ export default function MultiChart() {
       <div className="flex gap-2 mb-4">
         <button
           onClick={() => setLayout(1)}
-          className={`px-3 py-1 rounded ${layout === 1 ? "bg-blue-600" : "bg-gray-700"}`}
+          className={`px-3 py-1 rounded ${
+            layout === 1 ? "bg-blue-600" : "bg-gray-700"
+          }`}
         >
           1 Chart
         </button>
         <button
           onClick={() => setLayout(2)}
-          className={`px-3 py-1 rounded ${layout === 2 ? "bg-blue-600" : "bg-gray-700"}`}
+          className={`px-3 py-1 rounded ${
+            layout === 2 ? "bg-blue-600" : "bg-gray-700"
+          }`}
         >
           2 Charts
         </button>
         <button
           onClick={() => setLayout(4)}
-          className={`px-3 py-1 rounded ${layout === 4 ? "bg-blue-600" : "bg-gray-700"}`}
+          className={`px-3 py-1 rounded ${
+            layout === 4 ? "bg-blue-600" : "bg-gray-700"
+          }`}
         >
           4 Charts
         </button>
@@ -59,9 +82,12 @@ export default function MultiChart() {
         }
       >
         {charts.slice(0, layout).map((chart, i) => (
-          <div key={i} className="bg-gray-800 p-3 rounded border border-gray-700">
+          <div
+            key={i}
+            className="bg-gray-800 p-3 rounded border border-gray-700"
+          >
             {/* Controls */}
-            <div className="flex justify-between items-center mb-2">
+            <div className="flex flex-col gap-2 mb-2">
               <SymbolSearch
                 onSelect={(symbol) => updateChart(i, { symbol })}
               />
@@ -81,10 +107,23 @@ export default function MultiChart() {
                 <option value="1D">1D</option>
                 <option value="1W">1W</option>
               </select>
+
+              <IndicatorToggles
+                indicators={chart.indicators}
+                onChange={(updates) =>
+                  updateChart(i, {
+                    indicators: { ...chart.indicators, ...updates },
+                  })
+                }
+              />
             </div>
 
             {/* Chart */}
-            <PriceChart symbol={chart.symbol} timeframe={chart.timeframe} />
+            <PriceChart
+              symbol={chart.symbol}
+              timeframe={chart.timeframe}
+              indicators={chart.indicators}
+            />
           </div>
         ))}
       </div>
