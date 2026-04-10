@@ -56,7 +56,7 @@ export default function Home() {
         <ChartWithIndicators symbol={symbol} timeframe={timeframe} />
 
         {/* Multi‑Chart View */}
-        <MultiChart symbol={symbol} />
+        <MultiChart />
 
         {/* Orderbook */}
         <Orderbook symbol={symbol} />
