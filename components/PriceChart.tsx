@@ -1,230 +1,167 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import {
   createChart,
+  ColorType,
+  UTCTimestamp,
   IChartApi,
   ISeriesApi,
 } from "lightweight-charts";
-
-import type { UTCTimestamp } from "lightweight-charts";
-
+import { useEffect, useRef, useState } from "react";
 import { fetchCandles } from "@/lib/fetchCandles";
-import { calculateSMA, calculateEMA } from "@/lib/indicators";
 
 export default function PriceChart({
   symbol,
   timeframe,
+  indicators,
 }: {
   symbol: string;
   timeframe: string;
+  indicators: any;
 }) {
-  const chartRef = useRef<HTMLDivElement | null>(null);
-  const chartInstance = useRef<IChartApi | null>(null);
+  const chartContainerRef = useRef<HTMLDivElement | null>(null);
+  const chartRef = useRef<IChartApi | null>(null);
+  const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
 
-  const candleSeries = useRef<ISeriesApi<"Candlestick"> | null>(null);
-  const smaSeries = useRef<ISeriesApi<"Line"> | null>(null);
-  const emaSeries = useRef<ISeriesApi<"Line"> | null>(null);
-  const volumeSeries = useRef<ISeriesApi<"Histogram"> | null>(null);
+  const smaSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const emaSeriesRef = useRef<ISeriesApi<"Line"> | null>(null);
 
-  const [candles, setCandles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
+  // -----------------------------
+  // SMA + EMA CALCULATIONS
+  // -----------------------------
+  function calculateSMA(data: any[], length: number) {
+    const result = [];
+    for (let i = 0; i < data.length; i++) {
+      if (i < length) continue;
+      const slice = data.slice(i - length, i);
+      const avg =
+        slice.reduce((sum, c) => sum + c.close, 0) / slice.length;
+      result.push({ time: data[i].time, value: avg });
+    }
+    return result;
+  }
+
+  function calculateEMA(data: any[], length: number) {
+    const result = [];
+    const k = 2 / (length + 1);
+    let emaPrev = data[0]?.close;
+
+    for (let i = 1; i < data.length; i++) {
+      const close = data[i].close;
+      const ema = close * k + emaPrev * (1 - k);
+      emaPrev = ema;
+      result.push({ time: data[i].time, value: ema });
+    }
+    return result;
+  }
+
+  // -----------------------------
+  // INITIAL CHART SETUP
+  // -----------------------------
   useEffect(() => {
-    if (!chartRef.current) return;
+    if (!chartContainerRef.current) return;
 
-    // Create chart once
-    if (!chartInstance.current) {
-      chartInstance.current = createChart(chartRef.current, {
-        layout: { background: { color: "#000" }, textColor: "#fff" },
-        grid: {
-          vertLines: { color: "#222" },
-          horzLines: { color: "#222" },
-        },
-        crosshair: {
-          mode: 1,
-        },
-        width: chartRef.current.clientWidth,
-        height: 400,
-      });
+    chartRef.current = createChart(chartContainerRef.current, {
+      layout: {
+        background: { type: ColorType.Solid, color: "#000000" },
+        textColor: "#FFFFFF",
+      },
+      grid: {
+        vertLines: { color: "#222" },
+        horzLines: { color: "#222" },
+      },
+      width: chartContainerRef.current.clientWidth,
+      height: 350,
+    });
 
-      candleSeries.current =
-        chartInstance.current.addCandlestickSeries();
+    candleSeriesRef.current = chartRef.current.addCandlestickSeries({
+      upColor: "#0ECB81",
+      downColor: "#F6465D",
+      borderUpColor: "#0ECB81",
+      borderDownColor: "#F6465D",
+      wickUpColor: "#0ECB81",
+      wickDownColor: "#F6465D",
+    });
 
-      volumeSeries.current = chartInstance.current.addHistogramSeries({
-        priceFormat: { type: "volume" },
-        priceScaleId: "",
-        color: "#26a69a",
-      });
+    smaSeriesRef.current = chartRef.current.addLineSeries({
+      color: "#FFD700",
+      lineWidth: 2,
+    });
 
-      volumeSeries.current.priceScale().applyOptions({
-        scaleMargins: {
-          top: 0.8,
-          bottom: 0,
-        },
-      });
+    emaSeriesRef.current = chartRef.current.addLineSeries({
+      color: "#0099FF",
+      lineWidth: 2,
+    });
 
-      candleSeries.current.priceScale().applyOptions({
-        scaleMargins: {
-          top: 0.05,
-          bottom: 0.25,
-        },
-      });
-
-      smaSeries.current = chartInstance.current.addLineSeries({
-        color: "#00bcd4",
-        lineWidth: 2,
-      });
-
-      emaSeries.current = chartInstance.current.addLineSeries({
-        color: "#ff9800",
-        lineWidth: 2,
-      });
-    }
-
-    async function load() {
-      const data = await fetchCandles(symbol, timeframe);
-
-      if (data?.candles) {
-        // Convert initial candles from ms → seconds
-        const fixedCandles = data.candles.map((c: any) => ({
-          time: Math.floor(c.time / 1000),
-          open: c.open,
-          high: c.high,
-          low: c.low,
-          close: c.close,
-          volume: c.volume,
-        }));
-
-        setCandles(fixedCandles);
-
-        // Candlestick series must NOT include volume
-        candleSeries.current?.setData(
-          fixedCandles.map((c: any) => ({
-            time: c.time as unknown as UTCTimestamp,
-            open: c.open,
-            high: c.high,
-            low: c.low,
-            close: c.close,
-          }))
-        );
-
-        // Volume series uses corrected time
-        volumeSeries.current?.setData(
-          fixedCandles.map((c: any) => ({
-            time: c.time as unknown as UTCTimestamp,
-            value: c.volume,
-          }))
-        );
-
-        smaSeries.current?.setData(calculateSMA(fixedCandles, 20));
-        emaSeries.current?.setData(calculateEMA(fixedCandles, 50));
+    const handleResize = () => {
+      if (chartRef.current && chartContainerRef.current) {
+        chartRef.current.applyOptions({
+          width: chartContainerRef.current.clientWidth,
+        });
       }
-    }
-
-    load();
-
-    // --- WebSocket for live candles ---
-    const ws = new WebSocket(
-      `wss://stream.binance.com:9443/ws/${symbol.toLowerCase()}@kline_${timeframe}`
-    );
-
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      const k = data.k;
-
-      const liveCandle = {
-        time: Math.floor(k.t / 1000),
-        open: parseFloat(k.o),
-        high: parseFloat(k.h),
-        low: parseFloat(k.l),
-        close: parseFloat(k.c),
-        volume: parseFloat(k.v),
-      };
-
-      setCandles((prev) => {
-        const updated = [...prev];
-        const lastIndex = updated.length - 1;
-
-        if (!k.x) {
-          updated[lastIndex] = liveCandle;
-        } else {
-          updated[lastIndex] = liveCandle;
-          updated.push(liveCandle);
-        }
-
-        // Candlestick update must NOT include volume
-        candleSeries.current?.update({
-          time: liveCandle.time as unknown as UTCTimestamp,
-          open: liveCandle.open,
-          high: liveCandle.high,
-          low: liveCandle.low,
-          close: liveCandle.close,
-        });
-
-        volumeSeries.current?.update({
-          time: liveCandle.time as unknown as UTCTimestamp,
-          value: liveCandle.volume,
-        });
-
-        smaSeries.current?.setData(calculateSMA(updated, 20));
-        emaSeries.current?.setData(calculateEMA(updated, 50));
-
-        return updated;
-      });
     };
 
-    return () => ws.close();
-  }, [symbol, timeframe]);
+    window.addEventListener("resize", handleResize);
 
-  // --- TradingView-style tooltips ---
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      chartRef.current?.remove();
+    };
+  }, []);
+
+  // -----------------------------
+  // LOAD CANDLES
+  // -----------------------------
   useEffect(() => {
-    if (!chartInstance.current || !candleSeries.current) return;
+    async function load() {
+      setLoading(true);
 
-    const priceTooltip = document.getElementById("price-tooltip");
-    const timeTooltip = document.getElementById("time-tooltip");
+      const { candles } = await fetchCandles(symbol, timeframe);
 
-    chartInstance.current.subscribeCrosshairMove((param) => {
-      const p = param as any;
-
-      if (!p || !p.time || !p.seriesPrices) {
-        priceTooltip!.style.display = "none";
-        timeTooltip!.style.display = "none";
+      if (!candles || candles.length === 0) {
+        setLoading(false);
         return;
       }
 
-      const candlePrice = p.seriesPrices.get(candleSeries.current!);
+      const fixed = candles.map((c: any) => ({
+        time: (c.time / 1000) as UTCTimestamp,
+        open: c.open,
+        high: c.high,
+        low: c.low,
+        close: c.close,
+      }));
 
-      if (candlePrice) {
-        priceTooltip!.innerText = candlePrice.close.toFixed(2);
-        priceTooltip!.style.display = "block";
-        priceTooltip!.style.top = p.point?.y + "px";
+      candleSeriesRef.current?.setData(fixed);
+
+      // -----------------------------
+      // INDICATORS
+      // -----------------------------
+      if (indicators.sma) {
+        smaSeriesRef.current?.setData(calculateSMA(fixed, 20));
+      } else {
+        smaSeriesRef.current?.setData([]);
       }
 
-      const utc = new Date((p.time as number) * 1000);
-      const timeStr = utc.toLocaleString();
+      if (indicators.ema) {
+        emaSeriesRef.current?.setData(calculateEMA(fixed, 50));
+      } else {
+        emaSeriesRef.current?.setData([]);
+      }
 
-      timeTooltip!.innerText = timeStr;
-      timeTooltip!.style.display = "block";
-      timeTooltip!.style.left = p.point?.x + "px";
-    });
-  }, []);
+      setLoading(false);
+    }
+
+    load();
+  }, [symbol, timeframe, indicators]);
 
   return (
-    <div className="relative w-full h-[400px] rounded-lg overflow-hidden">
-      <div
-        ref={chartRef}
-        className="absolute inset-0"
-      />
-
-      <div
-        id="price-tooltip"
-        className="absolute right-0 bg-black/80 text-white px-2 py-1 text-sm rounded hidden pointer-events-none"
-      ></div>
-
-      <div
-        id="time-tooltip"
-        className="absolute bottom-0 bg-black/80 text-white px-2 py-1 text-sm rounded hidden pointer-events-none"
-      ></div>
+    <div className="w-full">
+      {loading && (
+        <div className="text-gray-400 text-sm mb-2">Loading chart…</div>
+      )}
+      <div ref={chartContainerRef} className="w-full h-[350px]" />
     </div>
   );
-          }
+}
