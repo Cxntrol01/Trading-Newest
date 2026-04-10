@@ -1,174 +1,89 @@
 "use client";
 
 import { useState } from "react";
-
-import Chart from "./Chart";
-import ChartControls from "./ChartControls";
-import ChartSettings from "./ChartSettings";
-import ChartLayoutSelector from "./ChartLayoutSelector";
-import DrawingTools from "./DrawingTools";
-import MarketReplay from "./MarketReplay";
-import SaveLayout from "./SaveLayout";
-import FullscreenChart from "./FullscreenChart";
-import ChartPresets from "./ChartPresets";
-import MobileChartControls from "./MobileChartControls";
-
-import IndicatorSettings from "./IndicatorSettings";
-import AutoTrendlineSettings from "./AutoTrendlineSettings";
-import AIAnnotationSettings from "./AIAnnotationSettings";
-import AutoSRSettings from "./AutoSRSettings";
-
-import RefreshInterval from "./RefreshInterval";
-import AIRefreshRate from "./AIRefreshRate";
+import PriceChart from "./PriceChart";
+import SymbolSearch from "./SymbolSearch";
 
 export default function ChartWorkspace() {
-  const [layout, setLayout] = useState(1);
+  const [layout, setLayout] = useState<1 | 2 | 4>(1);
 
-  const [indicatorSettings, setIndicatorSettings] = useState({
-    RSI: { length: 14 },
-    EMA: { period: 20 },
-    SMA: { period: 20 },
-    MACD: { fast: 12, slow: 26, signal: 9 },
-    autoTrendlines: {},
-    aiAnnotations: {},
-    autoSR: {}
-  });
+  const [charts, setCharts] = useState([
+    { symbol: "BTCUSDT", timeframe: "1m" },
+    { symbol: "AAPL", timeframe: "1m" },
+    { symbol: "TSLA", timeframe: "1m" },
+    { symbol: "AMZN", timeframe: "1m" },
+  ]);
 
-  const [refreshRate, setRefreshRate] = useState(15000);
-
-  const applyPreset = (preset: any) => {
-    console.log("Preset applied:", preset);
-  };
-
-  const renderCharts = () => {
-    const charts = [];
-    for (let i = 0; i < layout; i++) {
-      charts.push(
-        <div key={i} className="w-full">
-          <Chart refreshRate={refreshRate} />
-        </div>
-      );
-    }
-    return charts;
-  };
+  function updateChart(index: number, updates: any) {
+    setCharts((prev) => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], ...updates };
+      return copy;
+    });
+  }
 
   return (
-    <div className="space-y-4">
-
-      {/* DESKTOP TOOLBAR */}
-      <div className="hidden md:flex flex-wrap gap-3 items-center">
-
-        <ChartSettings onChange={() => {}} />
-
-        <ChartPresets onApply={applyPreset} />
-
-        <ChartLayoutSelector onChange={setLayout} />
-
-        <MarketReplay />
-
-        <SaveLayout />
-
-        <FullscreenChart>
-          <div className="space-y-4">{renderCharts()}</div>
-        </FullscreenChart>
-
-        <RefreshInterval onChange={(ms) => setRefreshRate(ms)} />
-        <AIRefreshRate onChange={(ms) => setRefreshRate(ms)} />
-
-        <IndicatorSettings
-          indicator="RSI"
-          onSave={(s) => setIndicatorSettings({ ...indicatorSettings, RSI: s })}
-        />
-        <IndicatorSettings
-          indicator="EMA"
-          onSave={(s) => setIndicatorSettings({ ...indicatorSettings, EMA: s })}
-        />
-        <IndicatorSettings
-          indicator="SMA"
-          onSave={(s) => setIndicatorSettings({ ...indicatorSettings, SMA: s })}
-        />
-        <IndicatorSettings
-          indicator="MACD"
-          onSave={(s) => setIndicatorSettings({ ...indicatorSettings, MACD: s })}
-        />
-
-        <AutoTrendlineSettings
-          onSave={(s) =>
-            setIndicatorSettings({ ...indicatorSettings, autoTrendlines: s })
-          }
-        />
-        <AIAnnotationSettings
-          onSave={(s) =>
-            setIndicatorSettings({ ...indicatorSettings, aiAnnotations: s })
-          }
-        />
-        <AutoSRSettings
-          onSave={(s) =>
-            setIndicatorSettings({ ...indicatorSettings, autoSR: s })
-          }
-        />
+    <div className="flex flex-col gap-4 w-full">
+      {/* Layout selector */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setLayout(1)}
+          className={`px-3 py-1 rounded ${layout === 1 ? "bg-blue-600" : "bg-gray-700"}`}
+        >
+          1 Chart
+        </button>
+        <button
+          onClick={() => setLayout(2)}
+          className={`px-3 py-1 rounded ${layout === 2 ? "bg-blue-600" : "bg-gray-700"}`}
+        >
+          2 Charts
+        </button>
+        <button
+          onClick={() => setLayout(4)}
+          className={`px-3 py-1 rounded ${layout === 4 ? "bg-blue-600" : "bg-gray-700"}`}
+        >
+          4 Charts
+        </button>
       </div>
 
-      {/* MOBILE TOOLBAR */}
-      <MobileChartControls>
-        <ChartSettings onChange={() => {}} />
-        <ChartPresets onApply={applyPreset} />
-        <ChartLayoutSelector onChange={setLayout} />
-        <MarketReplay />
-        <SaveLayout />
-
-        <RefreshInterval onChange={(ms) => setRefreshRate(ms)} />
-        <AIRefreshRate onChange={(ms) => setRefreshRate(ms)} />
-
-        <IndicatorSettings
-          indicator="RSI"
-          onSave={(s) => setIndicatorSettings({ ...indicatorSettings, RSI: s })}
-        />
-        <IndicatorSettings
-          indicator="EMA"
-          onSave={(s) => setIndicatorSettings({ ...indicatorSettings, EMA: s })}
-        />
-        <IndicatorSettings
-          indicator="SMA"
-          onSave={(s) => setIndicatorSettings({ ...indicatorSettings, SMA: s })}
-        />
-        <IndicatorSettings
-          indicator="MACD"
-          onSave={(s) => setIndicatorSettings({ ...indicatorSettings, MACD: s })}
-        />
-
-        <AutoTrendlineSettings
-          onSave={(s) =>
-            setIndicatorSettings({ ...indicatorSettings, autoTrendlines: s })
-          }
-        />
-        <AIAnnotationSettings
-          onSave={(s) =>
-            setIndicatorSettings({ ...indicatorSettings, aiAnnotations: s })
-          }
-        />
-        <AutoSRSettings
-          onSave={(s) =>
-            setIndicatorSettings({ ...indicatorSettings, autoSR: s })
-          }
-        />
-      </MobileChartControls>
-
-      <DrawingTools onSelect={() => {}} />
-
+      {/* Chart grid */}
       <div
-        className={`grid gap-4 ${
+        className={
           layout === 1
-            ? "grid-cols-1"
+            ? "grid grid-cols-1 gap-4"
             : layout === 2
-            ? "grid-cols-2"
-            : layout === 3
-            ? "grid-cols-3"
-            : "grid-cols-2 md:grid-cols-2"
-        }`}
+            ? "grid grid-cols-2 gap-4"
+            : "grid grid-cols-2 gap-4"
+        }
       >
-        {renderCharts()}
+        {charts.slice(0, layout).map((chart, i) => (
+          <div key={i} className="border border-gray-700 rounded p-2 bg-black">
+            <div className="flex justify-between items-center mb-2">
+              <SymbolSearch
+                onSelect={(symbol) => updateChart(i, { symbol })}
+              />
+
+              <select
+                value={chart.timeframe}
+                onChange={(e) =>
+                  updateChart(i, { timeframe: e.target.value })
+                }
+                className="bg-gray-800 text-white px-2 py-1 rounded"
+              >
+                <option value="1m">1m</option>
+                <option value="5m">5m</option>
+                <option value="15m">15m</option>
+                <option value="1h">1h</option>
+                <option value="4h">4h</option>
+                <option value="1D">1D</option>
+                <option value="1W">1W</option>
+              </select>
+            </div>
+
+            <PriceChart symbol={chart.symbol} timeframe={chart.timeframe} />
+          </div>
+        ))}
       </div>
     </div>
   );
-          }
+}
