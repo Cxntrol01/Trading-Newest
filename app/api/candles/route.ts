@@ -1,22 +1,27 @@
-// force vercel rebuild
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const symbol = searchParams.get("symbol") || "BTCUSDT";
-  const interval = searchParams.get("interval") || "1h";
+  const symbol = searchParams.get("symbol") || "AAPL";
+  const interval = searchParams.get("interval") || "60";
 
-  const url = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=200`;
+  const key = process.env.NEXT_PUBLIC_FINNHUB_KEY;
+
+  const url = `https://finnhub.io/api/v1/stock/candle?symbol=${symbol}&resolution=${interval}&count=200&token=${key}`;
 
   const res = await fetch(url);
   const data = await res.json();
 
-  const candles = data.map((c: any) => ({
-    time: c[0] / 1000,
-    open: parseFloat(c[1]),
-    high: parseFloat(c[2]),
-    low: parseFloat(c[3]),
-    close: parseFloat(c[4]),
+  if (data.s !== "ok") {
+    return NextResponse.json([]);
+  }
+
+  const candles = data.t.map((t: number, i: number) => ({
+    time: t,
+    open: data.o[i],
+    high: data.h[i],
+    low: data.l[i],
+    close: data.c[i],
   }));
 
   return NextResponse.json(candles);
