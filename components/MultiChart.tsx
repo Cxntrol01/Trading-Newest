@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import PriceChart from "./PriceChart";
 
 export default function MultiChart() {
   const [layout, setLayout] = useState(1);
@@ -43,7 +44,7 @@ export default function MultiChart() {
         </button>
       </div>
 
-      {/* Grid */}
+      {/* Chart Grid */}
       <div
         className={`grid gap-6 ${
           layout === 1
@@ -56,9 +57,9 @@ export default function MultiChart() {
         {Array.from({ length: layout }).map((_, i) => (
           <div
             key={i}
-            className="border border-gray-800 rounded-lg bg-gray-900/40 h-[400px] flex items-center justify-center"
+            className="border border-gray-800 rounded-lg bg-gray-900/40 h-[400px] overflow-hidden"
           >
-            <p className="text-gray-500">Chart {i + 1}</p>
+            <PriceChart />
           </div>
         ))}
       </div>
