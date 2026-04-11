@@ -26,8 +26,8 @@ export default function PriceChart() {
 
     const series = chart.addCandlestickSeries();
 
-    // Load historical candles
-    fetch("/api/candles?symbol=BTCUSDT&interval=1h")
+    // Load STOCK candles (AAPL, 1h)
+    fetch("/api/candles?symbol=AAPL&interval=60")
       .then((res) => res.json())
       .then((data) => {
         series.setData(data);
