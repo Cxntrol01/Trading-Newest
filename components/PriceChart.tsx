@@ -24,12 +24,18 @@ export default function PriceChart() {
       height: containerRef.current.clientHeight,
     });
 
+    const series = chart.addCandlestickSeries();
+
+    // Load historical candles
+    fetch("/api/candles?symbol=BTCUSDT&interval=1h")
+      .then((res) => res.json())
+      .then((data) => {
+        series.setData(data);
+      });
+
     chartRef.current = chart;
 
-    // Add empty candlestick series
-    chart.addCandlestickSeries();
-
-    // Resize chart on container resize
+    // Auto-resize
     const resizeObserver = new ResizeObserver(() => {
       if (containerRef.current && chartRef.current) {
         chartRef.current.applyOptions({
