@@ -23,10 +23,12 @@ export default function PriceChart({
   symbol,
   timeframe,
   indicators,
+  indicatorSettings,
 }: {
   symbol: string;
   timeframe: string;
   indicators: Indicators;
+  indicatorSettings: any;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -53,7 +55,7 @@ export default function PriceChart({
   };
 
   // ------------------------------------------------------------
-  // 1) CREATE CHART + SERIES (ONCE)
+  // 1) CREATE CHART (ONCE)
   // ------------------------------------------------------------
   useEffect(() => {
     if (!containerRef.current) return;
@@ -110,7 +112,6 @@ export default function PriceChart({
     )
       .then((res) => res.json())
       .then((raw) => {
-        // ⭐ Normalize candle data to prevent VWAP flattening
         const data = raw.map((c: any) => ({
           time: c.time,
           open: Number(c.open ?? c.close ?? 0),
@@ -134,7 +135,7 @@ export default function PriceChart({
   }, [symbol, timeframe]);
 
   // ------------------------------------------------------------
-  // 3) UPDATE INDICATORS WHEN INDICATORS CHANGE
+  // 3) UPDATE INDICATORS WHEN SETTINGS OR TOGGLES CHANGE
   // ------------------------------------------------------------
   useEffect(() => {
     if (!chartRef.current) return;
@@ -144,29 +145,36 @@ export default function PriceChart({
 
     if (!data.length) return;
 
-    // Remove indicator series
-    [smaRef, emaRef, rsiRef, macdRef, bbUpperRef, bbLowerRef, vwapRef].forEach(
-      (ref) => {
-        if (ref.current) {
-          chart.removeSeries(ref.current);
-          ref.current = null;
-        }
+    // Remove old indicator series
+    [
+      smaRef,
+      emaRef,
+      rsiRef,
+      macdRef,
+      bbUpperRef,
+      bbLowerRef,
+      vwapRef,
+    ].forEach((ref) => {
+      if (ref.current) {
+        chart.removeSeries(ref.current);
+        ref.current = null;
       }
-    );
+    });
 
     // --------------------
     // Bollinger Bands
     // --------------------
     if (indicators.bb) {
-      const bb = calculateBollingerBands(data, 20, 2);
+      const { length, mult, color } = indicatorSettings.bb;
+      const bb = calculateBollingerBands(data, length, mult);
 
       bbUpperRef.current = chart.addLineSeries({
-        color: "#f97316",
+        color,
         lineWidth: 1,
         priceScaleId: "right",
       });
       bbLowerRef.current = chart.addLineSeries({
-        color: "#f97316",
+        color,
         lineWidth: 1,
         priceScaleId: "right",
       });
@@ -176,12 +184,14 @@ export default function PriceChart({
     }
 
     // --------------------
-    // VWAP (⭐ FINAL FIX — CLAMPED)
+    // VWAP
     // --------------------
     if (indicators.vwap) {
+      const { color, width } = indicatorSettings.vwap;
+
       vwapRef.current = chart.addLineSeries({
-        color: "#a855f7",
-        lineWidth: 2,
+        color,
+        lineWidth: width,
         priceScaleId: "right",
       });
 
@@ -192,60 +202,70 @@ export default function PriceChart({
     // SMA
     // --------------------
     if (indicators.sma) {
+      const { length, color, width } = indicatorSettings.sma;
+
       smaRef.current = chart.addLineSeries({
-        color: "#4ade80",
-        lineWidth: 2,
+        color,
+        lineWidth: width,
         priceScaleId: "right",
       });
-      smaRef.current.setData(calculateSMA(data, 14));
+
+      smaRef.current.setData(calculateSMA(data, length));
     }
 
     // --------------------
     // EMA
     // --------------------
     if (indicators.ema) {
+      const { length, color, width } = indicatorSettings.ema;
+
       emaRef.current = chart.addLineSeries({
-        color: "#60a5fa",
-        lineWidth: 2,
+        color,
+        lineWidth: width,
         priceScaleId: "right",
       });
-      emaRef.current.setData(calculateEMA(data, 14));
+
+      emaRef.current.setData(calculateEMA(data, length));
     }
 
     // --------------------
     // RSI
     // --------------------
     if (indicators.rsi) {
+      const { length, color } = indicatorSettings.rsi;
+
       chart.priceScale("rsi").applyOptions({
         scaleMargins: { top: 0.8, bottom: 0 },
       });
 
       rsiRef.current = chart.addLineSeries({
-        color: "#fbbf24",
+        color,
         lineWidth: 2,
         priceScaleId: "rsi",
       });
 
-      rsiRef.current.setData(calculateRSI(data, 14));
+      rsiRef.current.setData(calculateRSI(data, length));
     }
 
     // --------------------
     // MACD
     // --------------------
     if (indicators.macd) {
+      const { fast, slow, signal, color } = indicatorSettings.macd;
+
       chart.priceScale("macd").applyOptions({
         scaleMargins: { top: 0.6, bottom: 0 },
       });
 
       macdRef.current = chart.addLineSeries({
-        color: "#f472b6",
+        color,
         lineWidth: 2,
         priceScaleId: "macd",
       });
 
-      macdRef.current.setData(calculateMACD(data));
+      macdRef.current.setData(calculateMACD(data, fast, slow, signal));
     }
-  }, [JSON.stringify(indicators)]);
+  }, [JSON.stringify(indicators), JSON.stringify(indicatorSettings)]);
 
   return (
     <div
@@ -258,30 +278,6 @@ export default function PriceChart({
 // ------------------------------------------------------------
 // INDICATOR CALCULATIONS
 // ------------------------------------------------------------
-
-// ⭐ FINAL VWAP FIX — CLAMP TO PRICE RANGE
-function calculateVWAP(data: any[]): LineData[] {
-  let cumulativeTP = 0;
-  let count = 0;
-
-  const minPrice = Math.min(...data.map((c) => c.low));
-  const maxPrice = Math.max(...data.map((c) => c.high));
-
-  return data.map((c) => {
-    const typicalPrice = (c.high + c.low + c.close) / 3;
-
-    cumulativeTP += typicalPrice;
-    count++;
-
-    let vwap = cumulativeTP / count;
-
-    // ⭐ Clamp VWAP to candle price range
-    if (vwap < minPrice) vwap = minPrice;
-    if (vwap > maxPrice) vwap = maxPrice;
-
-    return { time: c.time, value: vwap };
-  });
-}
 
 function calculateSMA(data: any[], length: number): LineData[] {
   return data.map((c, i) => {
@@ -334,13 +330,25 @@ function calculateRSI(data: any[], length: number): LineData[] {
   });
 }
 
-function calculateMACD(data: any[]): LineData[] {
-  const ema12 = calculateEMA(data, 12);
-  const ema26 = calculateEMA(data, 26);
+function calculateMACD(
+  data: any[],
+  fast: number,
+  slow: number,
+  signal: number
+): LineData[] {
+  const emaFast = calculateEMA(data, fast);
+  const emaSlow = calculateEMA(data, slow);
 
-  return data.map((c, i) => ({
+  const macdLine = data.map((c, i) => ({
     time: c.time,
-    value: ema12[i].value! - ema26[i].value!,
+    value: emaFast[i].value! - emaSlow[i].value!,
+  }));
+
+  const signalLine = calculateEMA(macdLine, signal);
+
+  return macdLine.map((c, i) => ({
+    time: c.time,
+    value: c.value! - signalLine[i].value!,
   }));
 }
 
@@ -371,4 +379,27 @@ function calculateBollingerBands(
   });
 
   return { upper, lower };
-        }
+}
+
+// ⭐ FINAL VWAP FIX — CLAMP TO PRICE RANGE
+function calculateVWAP(data: any[]): LineData[] {
+  let cumulativeTP = 0;
+  let count = 0;
+
+  const minPrice = Math.min(...data.map((c) => c.low));
+  const maxPrice = Math.max(...data.map((c) => c.high));
+
+  return data.map((c) => {
+    const typicalPrice = (c.high + c.low + c.close) / 3;
+
+    cumulativeTP += typicalPrice;
+    count++;
+
+    let vwap = cumulativeTP / count;
+
+    if (vwap < minPrice) vwap = minPrice;
+    if (vwap > maxPrice) vwap = maxPrice;
+
+    return { time: c.time, value: vwap };
+  });
+      }
