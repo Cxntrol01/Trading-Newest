@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import NewsFeed from "@/components/NewsFeed";
 
 export default function Home() {
   return (
@@ -74,7 +75,9 @@ export default function Home() {
       {/* Continue Where You Left Off */}
       <section className="border border-gray-800 rounded-lg p-6 bg-gray-900/40 backdrop-blur-md shadow-lg">
         <h2 className="text-xl font-semibold mb-2">Continue where you left off</h2>
-        <p className="text-gray-400 mb-4">Last opened: <span className="text-white">AAPL · 1D</span></p>
+        <p className="text-gray-400 mb-4">
+          Last opened: <span className="text-white">AAPL · 1D</span>
+        </p>
 
         <Link
           href="/workspace"
@@ -115,29 +118,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* News Feed */}
-      <section className="border border-gray-800 rounded-lg p-6 bg-gray-900/40 backdrop-blur-md shadow-lg">
-        <h2 className="text-xl font-semibold mb-4">Market News</h2>
-
-        <div className="flex flex-col gap-4 text-sm">
-
-          <div className="p-3 bg-gray-800/40 rounded-lg">
-            <div className="font-semibold text-white">Tech stocks rally as markets open</div>
-            <div className="text-gray-400">NASDAQ leads gains with strong semiconductor performance.</div>
-          </div>
-
-          <div className="p-3 bg-gray-800/40 rounded-lg">
-            <div className="font-semibold text-white">Oil prices dip amid global uncertainty</div>
-            <div className="text-gray-400">Energy sector sees mild pullback after last week’s surge.</div>
-          </div>
-
-          <div className="p-3 bg-gray-800/40 rounded-lg">
-            <div className="font-semibold text-white">Apple announces new product event</div>
-            <div className="text-gray-400">Investors anticipate updates to the Mac and iPad lineup.</div>
-          </div>
-
-        </div>
-      </section>
+      {/* LIVE Market-Moving News */}
+      <NewsFeed />
 
     </div>
   );
