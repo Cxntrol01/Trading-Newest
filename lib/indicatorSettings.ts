@@ -40,6 +40,12 @@ export const defaultIndicatorSettings = {
   volume: {
     colorUp: "#22c55e",
     colorDown: "#ef4444",
-    scale: "volume",
+  },
+
+  // ⭐ NEW
+  volumeMA: {
+    length: 20,
+    color: "#38bdf8",
+    width: 2,
   },
 };
