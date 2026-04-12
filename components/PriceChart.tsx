@@ -17,6 +17,7 @@ type Indicators = {
   macd: boolean;
   vwap: boolean;
   bb: boolean;
+  volume: boolean; // ⭐ NEW
 };
 
 export default function PriceChart({
@@ -55,7 +56,7 @@ export default function PriceChart({
   };
 
   // ------------------------------------------------------------
-  // 1) CREATE CHART (ONCE)
+  // CREATE CHART
   // ------------------------------------------------------------
   useEffect(() => {
     if (!containerRef.current) return;
@@ -75,6 +76,7 @@ export default function PriceChart({
 
     candleRef.current = chart.addCandlestickSeries();
 
+    // ⭐ Volume series created here (may be removed later)
     volumeRef.current = chart.addHistogramSeries({
       priceFormat: { type: "volume" },
       priceScaleId: "volume",
@@ -102,7 +104,7 @@ export default function PriceChart({
   }, []);
 
   // ------------------------------------------------------------
-  // 2) FETCH CANDLES WHEN SYMBOL/TIMEFRAME CHANGES
+  // FETCH CANDLES
   // ------------------------------------------------------------
   useEffect(() => {
     if (!chartRef.current || !candleRef.current) return;
@@ -124,18 +126,24 @@ export default function PriceChart({
         candleDataRef.current = data;
         candleRef.current!.setData(data);
 
+        // ⭐ Volume data
         const volumeData: HistogramData[] = data.map((c: any) => ({
           time: c.time,
           value: c.volume,
-          color: c.close >= c.open ? "#22c55e" : "#ef4444",
+          color:
+            c.close >= c.open
+              ? indicatorSettings.volume.colorUp
+              : indicatorSettings.volume.colorDown,
         }));
 
-        volumeRef.current!.setData(volumeData);
+        if (volumeRef.current) {
+          volumeRef.current.setData(volumeData);
+        }
       });
   }, [symbol, timeframe]);
 
   // ------------------------------------------------------------
-  // 3) UPDATE INDICATORS WHEN SETTINGS OR TOGGLES CHANGE
+  // UPDATE INDICATORS
   // ------------------------------------------------------------
   useEffect(() => {
     if (!chartRef.current) return;
@@ -160,6 +168,36 @@ export default function PriceChart({
         ref.current = null;
       }
     });
+
+    // --------------------
+    // ⭐ VOLUME TOGGLE
+    // --------------------
+    if (!indicators.volume && volumeRef.current) {
+      chart.removeSeries(volumeRef.current);
+      volumeRef.current = null;
+    }
+
+    if (indicators.volume && volumeRef.current === null) {
+      volumeRef.current = chart.addHistogramSeries({
+        priceFormat: { type: "volume" },
+        priceScaleId: "volume",
+      });
+
+      chart.priceScale("volume").applyOptions({
+        scaleMargins: { top: 0.8, bottom: 0 },
+      });
+
+      const volumeData = data.map((c: any) => ({
+        time: c.time,
+        value: c.volume,
+        color:
+          c.close >= c.open
+            ? indicatorSettings.volume.colorUp
+            : indicatorSettings.volume.colorDown,
+      }));
+
+      volumeRef.current.setData(volumeData);
+    }
 
     // --------------------
     // Bollinger Bands
@@ -402,4 +440,4 @@ function calculateVWAP(data: any[]): LineData[] {
 
     return { time: c.time, value: vwap };
   });
-      }
+            }
