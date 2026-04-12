@@ -7,14 +7,17 @@ body {
 }
 
 /* ----------------------------------------------------------
-   ⭐ Animation utilities for Indicator Settings Panel
+   ⭐ Animation utilities for Settings Panel + Ticker
    ---------------------------------------------------------- */
 @layer utilities {
+
+  /* Fade-in overlay animation */
   @keyframes fadeIn {
     from { opacity: 0 }
     to { opacity: 1 }
   }
 
+  /* Slide-up modal animation */
   @keyframes slideUp {
     from { opacity: 0; transform: translateY(20px) }
     to { opacity: 1; transform: translateY(0) }
@@ -26,5 +29,15 @@ body {
 
   .animate-slideUp {
     animation: slideUp 0.25s ease-out forwards;
+  }
+
+  /* Animated scrolling ticker */
+  @keyframes tickerScroll {
+    0% { transform: translateX(100%) }
+    100% { transform: translateX(-100%) }
+  }
+
+  .animate-ticker {
+    animation: tickerScroll 18s linear infinite;
   }
 }
