@@ -8,28 +8,82 @@ export default function WaffleMenu() {
 
   return (
     <div className="relative">
+      {/* Waffle Button */}
       <button
         onClick={() => setOpen(!open)}
-        className="p-2 hover:bg-gray-800 rounded"
+        className="
+          p-3 rounded-lg bg-gray-900/60 border border-gray-700 
+          hover:bg-gray-800 transition shadow-lg
+        "
       >
         <div className="grid grid-cols-3 gap-1">
-          {[...Array(9)].map((_, i) => (
-            <div key={i} className="w-1.5 h-1.5 bg-white rounded-sm" />
-          ))}
+          <span className="w-2 h-2 bg-white rounded-sm"></span>
+          <span className="w-2 h-2 bg-white rounded-sm"></span>
+          <span className="w-2 h-2 bg-white rounded-sm"></span>
+
+          <span className="w-2 h-2 bg-white rounded-sm"></span>
+          <span className="w-2 h-2 bg-white rounded-sm"></span>
+          <span className="w-2 h-2 bg-white rounded-sm"></span>
+
+          <span className="w-2 h-2 bg-white rounded-sm"></span>
+          <span className="w-2 h-2 bg-white rounded-sm"></span>
+          <span className="w-2 h-2 bg-white rounded-sm"></span>
         </div>
       </button>
 
+      {/* Menu Panel */}
       {open && (
-        <div className="absolute right-0 mt-2 bg-gray-900 border border-gray-700 rounded shadow-lg p-3 w-48">
-          <Link href="/" className="block px-2 py-1 hover:bg-gray-800 rounded">
-            Dashboard
-          </Link>
-          <Link
-            href="/workspace"
-            className="block px-2 py-1 hover:bg-gray-800 rounded"
-          >
-            Workspace
-          </Link>
+        <div
+          className="
+            absolute mt-3 right-0 w-56 
+            bg-gray-900/70 backdrop-blur-xl 
+            border border-gray-700 rounded-xl 
+            shadow-xl p-4 animate-fadeIn
+          "
+        >
+          <div className="grid grid-cols-1 gap-3 text-sm">
+
+            <Link
+              href="/"
+              className="
+                p-3 rounded-lg bg-gray-800/40 hover:bg-gray-800/70 
+                transition border border-gray-700 text-white font-medium
+              "
+            >
+              Home
+            </Link>
+
+            <Link
+              href="/workspace"
+              className="
+                p-3 rounded-lg bg-gray-800/40 hover:bg-gray-800/70 
+                transition border border-gray-700 text-white font-medium
+              "
+            >
+              Workspace
+            </Link>
+
+            <Link
+              href="/watchlist"
+              className="
+                p-3 rounded-lg bg-gray-800/40 hover:bg-gray-800/70 
+                transition border border-gray-700 text-white font-medium
+              "
+            >
+              Watchlist
+            </Link>
+
+            <Link
+              href="/settings"
+              className="
+                p-3 rounded-lg bg-gray-800/40 hover:bg-gray-800/70 
+                transition border border-gray-700 text-white font-medium
+              "
+            >
+              Settings
+            </Link>
+
+          </div>
         </div>
       )}
     </div>
