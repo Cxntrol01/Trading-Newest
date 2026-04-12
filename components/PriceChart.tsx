@@ -4,8 +4,7 @@ import { useEffect, useRef } from "react";
 import {
   createChart,
   IChartApi,
-  UTCTimestamp,
-  LineStyle,
+  ISeriesApi,
 } from "lightweight-charts";
 
 type Indicators = {
@@ -27,7 +26,12 @@ export default function PriceChart({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
 
-  // Convert timeframe to API interval
+  // Keep references to indicator series so we can remove them
+  const smaRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const emaRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const rsiRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const macdRef = useRef<ISeriesApi<"Line"> | null>(null);
+
   const intervalMap: Record<string, string> = {
     "1D": "1d",
     "1H": "1h",
@@ -36,12 +40,13 @@ export default function PriceChart({
     "5m": "5m",
   };
 
+  // Create chart once
   useEffect(() => {
     if (!containerRef.current) return;
 
     const chart = createChart(containerRef.current, {
       layout: {
-        background: { color: "#000000" },
+        background: { color: "#000" },
         textColor: "#d1d5db",
       },
       grid: {
@@ -51,73 +56,6 @@ export default function PriceChart({
       width: containerRef.current.clientWidth,
       height: containerRef.current.clientHeight,
     });
-
-    const candleSeries = chart.addCandlestickSeries();
-
-    // Fetch candles
-    fetch(
-      `/api/candles?symbol=${symbol}&interval=${intervalMap[timeframe]}&range=1mo`
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        candleSeries.setData(data);
-
-        // --- INDICATORS ---
-
-        // SMA
-        if (indicators.sma) {
-          const smaSeries = chart.addLineSeries({
-            color: "#4ade80",
-            lineWidth: 2,
-          });
-
-          const sma = calculateSMA(data, 14);
-          smaSeries.setData(sma);
-        }
-
-        // EMA
-        if (indicators.ema) {
-          const emaSeries = chart.addLineSeries({
-            color: "#60a5fa",
-            lineWidth: 2,
-          });
-
-          const ema = calculateEMA(data, 14);
-          emaSeries.setData(ema);
-        }
-
-        // RSI (separate panel)
-        if (indicators.rsi) {
-          const rsiPane = chart.addLineSeries({
-            color: "#fbbf24",
-            lineWidth: 2,
-            priceScaleId: "rsi",
-          });
-
-          chart.priceScale("rsi").applyOptions({
-            scaleMargins: { top: 0.8, bottom: 0 },
-          });
-
-          const rsi = calculateRSI(data, 14);
-          rsiPane.setData(rsi);
-        }
-
-        // MACD (separate panel)
-        if (indicators.macd) {
-          const macdPane = chart.addLineSeries({
-            color: "#f472b6",
-            lineWidth: 2,
-            priceScaleId: "macd",
-          });
-
-          chart.priceScale("macd").applyOptions({
-            scaleMargins: { top: 0.6, bottom: 0 },
-          });
-
-          const macd = calculateMACD(data);
-          macdPane.setData(macd);
-        }
-      });
 
     chartRef.current = chart;
 
@@ -136,6 +74,83 @@ export default function PriceChart({
       resizeObserver.disconnect();
       chart.remove();
     };
+  }, []);
+  // Load candles + indicators whenever symbol/timeframe/indicators change
+  useEffect(() => {
+    if (!chartRef.current) return;
+
+    const chart = chartRef.current;
+
+    // Clear old series
+    chart.getSeries().forEach((s) => chart.removeSeries(s));
+
+    const candleSeries = chart.addCandlestickSeries();
+
+    fetch(
+      `/api/candles?symbol=${symbol}&interval=${intervalMap[timeframe]}&range=1mo`
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        candleSeries.setData(data);
+
+        // --------------------
+        // SMA
+        // --------------------
+        if (indicators.sma) {
+          smaRef.current = chart.addLineSeries({
+            color: "#4ade80",
+            lineWidth: 2,
+          });
+
+          smaRef.current.setData(calculateSMA(data, 14));
+        }
+
+        // --------------------
+        // EMA
+        // --------------------
+        if (indicators.ema) {
+          emaRef.current = chart.addLineSeries({
+            color: "#60a5fa",
+            lineWidth: 2,
+          });
+
+          emaRef.current.setData(calculateEMA(data, 14));
+        }
+
+        // --------------------
+        // RSI (separate pane)
+        // --------------------
+        if (indicators.rsi) {
+          chart.priceScale("rsi").applyOptions({
+            scaleMargins: { top: 0.8, bottom: 0 },
+          });
+
+          rsiRef.current = chart.addLineSeries({
+            color: "#fbbf24",
+            lineWidth: 2,
+            priceScaleId: "rsi",
+          });
+
+          rsiRef.current.setData(calculateRSI(data, 14));
+        }
+
+        // --------------------
+        // MACD (separate pane)
+        // --------------------
+        if (indicators.macd) {
+          chart.priceScale("macd").applyOptions({
+            scaleMargins: { top: 0.6, bottom: 0 },
+          });
+
+          macdRef.current = chart.addLineSeries({
+            color: "#f472b6",
+            lineWidth: 2,
+            priceScaleId: "macd",
+          });
+
+          macdRef.current.setData(calculateMACD(data));
+        }
+      });
   }, [symbol, timeframe, indicators]);
 
   return (
@@ -144,9 +159,7 @@ export default function PriceChart({
       className="w-full h-full bg-black rounded-lg overflow-hidden"
     />
   );
-}
-
-// ----------------------
+}// ----------------------
 // INDICATOR FUNCTIONS
 // ----------------------
 
@@ -154,8 +167,7 @@ function calculateSMA(data: any[], length: number) {
   return data.map((c, i) => {
     if (i < length) return { time: c.time, value: null };
     const slice = data.slice(i - length, i);
-    const avg =
-      slice.reduce((sum, x) => sum + (x.close || 0), 0) / slice.length;
+    const avg = slice.reduce((sum, x) => sum + x.close, 0) / length;
     return { time: c.time, value: avg };
   });
 }
@@ -185,7 +197,7 @@ function calculateRSI(data: any[], length: number) {
   let avgGain = gains / length;
   let avgLoss = losses / length;
 
-  const rsi = data.map((c, i) => {
+  return data.map((c, i) => {
     if (i < length) return { time: c.time, value: null };
 
     const diff = data[i].close - data[i - 1].close;
@@ -200,8 +212,6 @@ function calculateRSI(data: any[], length: number) {
 
     return { time: c.time, value: rsiValue };
   });
-
-  return rsi;
 }
 
 function calculateMACD(data: any[]) {
@@ -212,4 +222,3 @@ function calculateMACD(data: any[]) {
     time: c.time,
     value: ema12[i].value - ema26[i].value,
   }));
-}
