@@ -38,7 +38,10 @@ export default function HomePage() {
     defaultIndicatorSettings
   );
 
-  const [openSettings, setOpenSettings] = useState<IndicatorKey | null>(null);
+  // ⭐ FIX: openSettings must be an object, not a string
+  const [openSettings, setOpenSettings] = useState<{
+    indicator: IndicatorKey;
+  } | null>(null);
 
   const toggleIndicator = (key: IndicatorKey) => {
     setIndicators((prev) => ({
@@ -47,7 +50,10 @@ export default function HomePage() {
     }));
   };
 
-  const updateIndicatorSettings = (indicator: IndicatorKey, newSettings: any) => {
+  const updateIndicatorSettings = (
+    indicator: IndicatorKey,
+    newSettings: any
+  ) => {
     setIndicatorSettings((prev) => ({
       ...prev,
       [indicator]: newSettings,
@@ -76,7 +82,9 @@ export default function HomePage() {
               <IndicatorToggles
                 indicators={indicators}
                 onToggle={(key) => toggleIndicator(key)}
-                onOpenSettings={(key) => setOpenSettings(key)}
+                onOpenSettings={(key) =>
+                  setOpenSettings({ indicator: key }) // ⭐ FIXED
+                }
               />
             </div>
           </details>
@@ -86,10 +94,10 @@ export default function HomePage() {
       {/* Indicator settings panel */}
       {openSettings && (
         <IndicatorSettingsPanel
-          indicator={openSettings}
-          settings={indicatorSettings[openSettings]}
+          indicator={openSettings.indicator} // ⭐ FIXED
+          settings={indicatorSettings[openSettings.indicator]} // ⭐ FIXED
           onChange={(newSettings) =>
-            updateIndicatorSettings(openSettings, newSettings)
+            updateIndicatorSettings(openSettings.indicator, newSettings)
           }
           onClose={() => setOpenSettings(null)}
         />
