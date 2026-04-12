@@ -7,34 +7,43 @@ import SymbolSearch from "./SymbolSearch";
 type ChartConfig = {
   symbol: string;
   timeframe: string;
+  indicators: {
+    sma: boolean;
+    ema: boolean;
+    rsi: boolean;
+    macd: boolean;
+  };
 };
 
 export default function MultiChart() {
   const [layout, setLayout] = useState(1);
 
-  // Each chart has its own symbol + timeframe
   const [charts, setCharts] = useState<ChartConfig[]>([
-    { symbol: "AAPL", timeframe: "1D" },
+    {
+      symbol: "AAPL",
+      timeframe: "1D",
+      indicators: { sma: false, ema: false, rsi: false, macd: false },
+    },
   ]);
 
-  // When layout changes, adjust chart count
   const updateLayout = (count: number) => {
     setLayout(count);
 
     setCharts((prev) => {
       const updated = [...prev];
 
-      // Add charts if needed
       while (updated.length < count) {
-        updated.push({ symbol: "AAPL", timeframe: "1D" });
+        updated.push({
+          symbol: "AAPL",
+          timeframe: "1D",
+          indicators: { sma: false, ema: false, rsi: false, macd: false },
+        });
       }
 
-      // Trim charts if needed
       return updated.slice(0, count);
     });
   };
 
-  // Update a single chart's symbol
   const updateSymbol = (index: number, symbol: string) => {
     setCharts((prev) => {
       const updated = [...prev];
@@ -43,11 +52,18 @@ export default function MultiChart() {
     });
   };
 
-  // Update a single chart's timeframe
   const updateTimeframe = (index: number, timeframe: string) => {
     setCharts((prev) => {
       const updated = [...prev];
       updated[index].timeframe = timeframe;
+      return updated;
+    });
+  };
+
+  const toggleIndicator = (index: number, key: keyof ChartConfig["indicators"]) => {
+    setCharts((prev) => {
+      const updated = [...prev];
+      updated[index].indicators[key] = !updated[index].indicators[key];
       return updated;
     });
   };
@@ -80,7 +96,7 @@ export default function MultiChart() {
         {charts.map((chart, i) => (
           <div
             key={i}
-            className="border border-gray-800 rounded-lg bg-gray-900/40 h-[450px] overflow-hidden flex flex-col"
+            className="border border-gray-800 rounded-lg bg-gray-900/40 h-[500px] overflow-hidden flex flex-col"
           >
             {/* Per-chart controls */}
             <div className="p-2 border-b border-gray-800 bg-gray-900 flex items-center gap-3">
@@ -101,9 +117,30 @@ export default function MultiChart() {
               </select>
             </div>
 
+            {/* Indicator toggles */}
+            <div className="p-2 border-b border-gray-800 bg-gray-800 flex gap-2 text-sm">
+              {["sma", "ema", "rsi", "macd"].map((ind) => (
+                <button
+                  key={ind}
+                  onClick={() => toggleIndicator(i, ind as any)}
+                  className={`px-2 py-1 rounded border ${
+                    chart.indicators[ind as keyof ChartConfig["indicators"]]
+                      ? "bg-blue-600 border-blue-500"
+                      : "bg-gray-700 border-gray-600 hover:bg-gray-600"
+                  }`}
+                >
+                  {ind.toUpperCase()}
+                </button>
+              ))}
+            </div>
+
             {/* Chart */}
             <div className="flex-1">
-              <PriceChart symbol={chart.symbol} timeframe={chart.timeframe} />
+              <PriceChart
+                symbol={chart.symbol}
+                timeframe={chart.timeframe}
+                indicators={chart.indicators}
+              />
             </div>
           </div>
         ))}
