@@ -42,7 +42,6 @@ export default function PriceChart({
   const bbLowerRef = useRef<ISeriesApi<"Line"> | null>(null);
   const vwapRef = useRef<ISeriesApi<"Line"> | null>(null);
 
-  // ⭐ Store candle data manually
   const candleDataRef = useRef<any[]>([]);
 
   const intervalMap: Record<string, string> = {
@@ -54,23 +53,18 @@ export default function PriceChart({
   };
 
   // ------------------------------------------------------------
-  // 1) CREATE CHART + CANDLE + VOLUME SERIES (RUNS ONCE)
+  // 1) CREATE CHART + SERIES (ONCE)
   // ------------------------------------------------------------
   useEffect(() => {
     if (!containerRef.current) return;
 
     const chart = createChart(containerRef.current, {
-      layout: {
-        background: { color: "#000" },
-        textColor: "#d1d5db",
-      },
+      layout: { background: { color: "#000" }, textColor: "#d1d5db" },
       grid: {
         vertLines: { color: "#1f2937" },
         horzLines: { color: "#1f2937" },
       },
-      crosshair: {
-        mode: CrosshairMode.Normal,
-      },
+      crosshair: { mode: CrosshairMode.Normal },
       width: containerRef.current.clientWidth,
       height: containerRef.current.clientHeight,
     });
@@ -106,22 +100,32 @@ export default function PriceChart({
   }, []);
 
   // ------------------------------------------------------------
-  // 2) FETCH CANDLES ONLY WHEN SYMBOL OR TIMEFRAME CHANGES
+  // 2) FETCH CANDLES WHEN SYMBOL/TIMEFRAME CHANGES
   // ------------------------------------------------------------
   useEffect(() => {
-    if (!chartRef.current || !candleRef.current || !volumeRef.current) return;
+    if (!chartRef.current || !candleRef.current) return;
 
     fetch(
       `/api/candles?symbol=${symbol}&interval=${intervalMap[timeframe]}&range=1mo`
     )
       .then((res) => res.json())
-      .then((data) => {
+      .then((raw) => {
+        // ⭐ Normalize candle data to prevent VWAP flattening
+        const data = raw.map((c: any) => ({
+          time: c.time,
+          open: Number(c.open ?? c.close ?? 0),
+          high: Number(c.high ?? c.close ?? 0),
+          low: Number(c.low ?? c.close ?? 0),
+          close: Number(c.close ?? c.open ?? 0),
+          volume: Number(c.volume ?? 1),
+        }));
+
         candleDataRef.current = data;
         candleRef.current!.setData(data);
 
         const volumeData: HistogramData[] = data.map((c: any) => ({
           time: c.time,
-          value: c.volume ?? 0,
+          value: c.volume,
           color: c.close >= c.open ? "#22c55e" : "#ef4444",
         }));
 
@@ -130,7 +134,7 @@ export default function PriceChart({
   }, [symbol, timeframe]);
 
   // ------------------------------------------------------------
-  // 3) UPDATE INDICATORS ONLY WHEN INDICATORS CHANGE
+  // 3) UPDATE INDICATORS WHEN INDICATORS CHANGE
   // ------------------------------------------------------------
   useEffect(() => {
     if (!chartRef.current) return;
@@ -138,9 +142,9 @@ export default function PriceChart({
     const chart = chartRef.current;
     const data = candleDataRef.current;
 
-    if (!data || data.length === 0) return;
+    if (!data.length) return;
 
-    // Remove ONLY indicator series
+    // Remove indicator series
     [smaRef, emaRef, rsiRef, macdRef, bbUpperRef, bbLowerRef, vwapRef].forEach(
       (ref) => {
         if (ref.current) {
@@ -172,7 +176,7 @@ export default function PriceChart({
     }
 
     // --------------------
-    // VWAP (⭐ FIXED VERSION)
+    // VWAP (⭐ FINAL FIX — CLAMPED)
     // --------------------
     if (indicators.vwap) {
       vwapRef.current = chart.addLineSeries({
@@ -180,6 +184,7 @@ export default function PriceChart({
         lineWidth: 2,
         priceScaleId: "right",
       });
+
       vwapRef.current.setData(calculateVWAP(data));
     }
 
@@ -254,10 +259,13 @@ export default function PriceChart({
 // INDICATOR CALCULATIONS
 // ------------------------------------------------------------
 
-// ⭐ VWAP FIX v2 — works even with missing/zero volume
+// ⭐ FINAL VWAP FIX — CLAMP TO PRICE RANGE
 function calculateVWAP(data: any[]): LineData[] {
   let cumulativeTP = 0;
   let count = 0;
+
+  const minPrice = Math.min(...data.map((c) => c.low));
+  const maxPrice = Math.max(...data.map((c) => c.high));
 
   return data.map((c) => {
     const typicalPrice = (c.high + c.low + c.close) / 3;
@@ -265,10 +273,13 @@ function calculateVWAP(data: any[]): LineData[] {
     cumulativeTP += typicalPrice;
     count++;
 
-    return {
-      time: c.time,
-      value: cumulativeTP / count,
-    };
+    let vwap = cumulativeTP / count;
+
+    // ⭐ Clamp VWAP to candle price range
+    if (vwap < minPrice) vwap = minPrice;
+    if (vwap > maxPrice) vwap = maxPrice;
+
+    return { time: c.time, value: vwap };
   });
 }
 
@@ -276,7 +287,7 @@ function calculateSMA(data: any[], length: number): LineData[] {
   return data.map((c, i) => {
     if (i < length) return { time: c.time, value: NaN };
     const slice = data.slice(i - length, i);
-    const avg = slice.reduce((sum: number, x: any) => sum + x.close, 0) / length;
+    const avg = slice.reduce((sum, x) => sum + x.close, 0) / length;
     return { time: c.time, value: avg };
   });
 }
@@ -337,7 +348,7 @@ function calculateBollingerBands(
   data: any[],
   length: number,
   mult: number
-): { upper: LineData[]; lower: LineData[] } {
+) {
   const upper: LineData[] = [];
   const lower: LineData[] = [];
 
@@ -349,13 +360,10 @@ function calculateBollingerBands(
     }
 
     const slice = data.slice(i - length, i);
-    const mean =
-      slice.reduce((sum: number, x: any) => sum + x.close, 0) / length;
+    const mean = slice.reduce((sum, x) => sum + x.close, 0) / length;
     const variance =
-      slice.reduce(
-        (sum: number, x: any) => sum + Math.pow(x.close - mean, 2),
-        0
-      ) / length;
+      slice.reduce((sum, x) => sum + Math.pow(x.close - mean, 2), 0) /
+      length;
     const std = Math.sqrt(variance);
 
     upper.push({ time: c.time, value: mean + mult * std });
@@ -363,4 +371,4 @@ function calculateBollingerBands(
   });
 
   return { upper, lower };
-  }
+        }
