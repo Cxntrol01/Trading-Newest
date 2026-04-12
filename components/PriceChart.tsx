@@ -42,7 +42,7 @@ export default function PriceChart({
   const bbLowerRef = useRef<ISeriesApi<"Line"> | null>(null);
   const vwapRef = useRef<ISeriesApi<"Line"> | null>(null);
 
-  // ⭐ Store candle data manually (fixes getData issue)
+  // ⭐ Store candle data manually
   const candleDataRef = useRef<any[]>([]);
 
   const intervalMap: Record<string, string> = {
@@ -117,9 +117,7 @@ export default function PriceChart({
     )
       .then((res) => res.json())
       .then((data) => {
-        // ⭐ Store candle data for indicators
-        candleDataRef.current = data;
-
+        candleDataRef.current = data; // ⭐ store candle data
         candleRef.current!.setData(data);
 
         const volumeData: HistogramData[] = data.map((c: any) => ({
@@ -139,7 +137,7 @@ export default function PriceChart({
     if (!chartRef.current) return;
 
     const chart = chartRef.current;
-    const data = candleDataRef.current; // ⭐ Use stored candle data
+    const data = candleDataRef.current;
 
     if (!data || data.length === 0) return;
 
@@ -153,47 +151,66 @@ export default function PriceChart({
       }
     );
 
-    // Add indicators
+    // --------------------
+    // Bollinger Bands
+    // --------------------
     if (indicators.bb) {
       const bb = calculateBollingerBands(data, 20, 2);
 
       bbUpperRef.current = chart.addLineSeries({
         color: "#f97316",
         lineWidth: 1,
+        priceScaleId: "right",
       });
       bbLowerRef.current = chart.addLineSeries({
         color: "#f97316",
         lineWidth: 1,
+        priceScaleId: "right",
       });
 
       bbUpperRef.current.setData(bb.upper);
       bbLowerRef.current.setData(bb.lower);
     }
 
+    // --------------------
+    // VWAP (⭐ FIXED SCALE)
+    // --------------------
     if (indicators.vwap) {
       vwapRef.current = chart.addLineSeries({
         color: "#a855f7",
         lineWidth: 2,
+        priceScaleId: "right", // ⭐ FIXED
       });
       vwapRef.current.setData(calculateVWAP(data));
     }
 
+    // --------------------
+    // SMA
+    // --------------------
     if (indicators.sma) {
       smaRef.current = chart.addLineSeries({
         color: "#4ade80",
         lineWidth: 2,
+        priceScaleId: "right",
       });
       smaRef.current.setData(calculateSMA(data, 14));
     }
 
+    // --------------------
+    // EMA
+    // --------------------
     if (indicators.ema) {
       emaRef.current = chart.addLineSeries({
         color: "#60a5fa",
         lineWidth: 2,
+        priceScaleId: "right",
       });
       emaRef.current.setData(calculateEMA(data, 14));
     }
 
+    // --------------------
+    // RSI
+    // --------------------
     if (indicators.rsi) {
       chart.priceScale("rsi").applyOptions({
         scaleMargins: { top: 0.8, bottom: 0 },
@@ -208,6 +225,9 @@ export default function PriceChart({
       rsiRef.current.setData(calculateRSI(data, 14));
     }
 
+    // --------------------
+    // MACD
+    // --------------------
     if (indicators.macd) {
       chart.priceScale("macd").applyOptions({
         scaleMargins: { top: 0.6, bottom: 0 },
@@ -232,7 +252,7 @@ export default function PriceChart({
 }
 
 // ------------------------------------------------------------
-// INDICATOR CALCULATIONS (NaN instead of undefined)
+// INDICATOR CALCULATIONS
 // ------------------------------------------------------------
 
 function calculateSMA(data: any[], length: number): LineData[] {
@@ -343,4 +363,4 @@ function calculateVWAP(data: any[]): LineData[] {
 
     return { time: c.time, value: vwap };
   });
-  }
+               }
