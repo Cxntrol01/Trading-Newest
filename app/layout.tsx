@@ -1,16 +1,20 @@
 import "./globals.css";
-import AppShell from "@/components/AppShell";
+import WaffleMenu from "@/components/WaffleMenu";
 
 export const metadata = {
-  title: "Trading Platform",
-  description: "Intellectia‑style trading workspace",
+  title: "Cxntre",
+  description: "Trading intelligence platform",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className="bg-black text-white">
-        <AppShell>{children}</AppShell>
+      <body className="relative">
+        {/* GLOBAL NAV — always on top */}
+        <WaffleMenu />
+
+        {/* All pages render underneath */}
+        {children}
       </body>
     </html>
   );
