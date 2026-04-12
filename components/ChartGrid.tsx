@@ -14,6 +14,7 @@ type Indicators = {
   macd: boolean;
   vwap: boolean;
   bb: boolean;
+  volume: boolean;   // ⭐ NEW
 };
 
 type ChartConfig = {
@@ -39,6 +40,7 @@ export default function ChartGrid() {
         macd: false,
         vwap: false,
         bb: false,
+        volume: true,   // ⭐ DEFAULT ON
       },
       indicatorSettings: JSON.parse(JSON.stringify(defaultIndicatorSettings)),
     },
@@ -69,6 +71,7 @@ export default function ChartGrid() {
             macd: false,
             vwap: false,
             bb: false,
+            volume: true,
           },
           indicatorSettings: JSON.parse(
             JSON.stringify(defaultIndicatorSettings)
@@ -205,7 +208,6 @@ export default function ChartGrid() {
                   Indicators ▼
                 </summary>
 
-                {/* ⭐ NEW: IndicatorToggles inside dropdown */}
                 <div className="absolute mt-2 bg-gray-900 border border-gray-700 rounded shadow-lg p-3 w-64 z-50">
                   <IndicatorToggles
                     indicators={chart.indicators}
