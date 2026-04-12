@@ -27,6 +27,15 @@ export default function PriceChart({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
 
+  // Convert timeframe to API interval
+  const intervalMap: Record<string, string> = {
+    "1D": "1d",
+    "1H": "1h",
+    "30m": "30m",
+    "15m": "15m",
+    "5m": "5m",
+  };
+
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -45,26 +54,17 @@ export default function PriceChart({
 
     const candleSeries = chart.addCandlestickSeries();
 
-    // Convert timeframe to API interval
-    const interval =
-      timeframe === "1D"
-        ? "1d"
-        : timeframe === "1H"
-        ? "1h"
-        : timeframe === "30m"
-        ? "30m"
-        : timeframe === "15m"
-        ? "15m"
-        : "5m";
-
-    fetch(`/api/candles?symbol=${symbol}&interval=${interval}&range=1mo`)
+    // Fetch candles
+    fetch(
+      `/api/candles?symbol=${symbol}&interval=${intervalMap[timeframe]}&range=1mo`
+    )
       .then((res) => res.json())
       .then((data) => {
         candleSeries.setData(data);
 
-        // -----------------------------
-        // SMA / EMA overlays
-        // -----------------------------
+        // --- INDICATORS ---
+
+        // SMA
         if (indicators.sma) {
           const smaSeries = chart.addLineSeries({
             color: "#4ade80",
@@ -75,6 +75,7 @@ export default function PriceChart({
           smaSeries.setData(sma);
         }
 
+        // EMA
         if (indicators.ema) {
           const emaSeries = chart.addLineSeries({
             color: "#60a5fa",
@@ -85,16 +86,36 @@ export default function PriceChart({
           emaSeries.setData(ema);
         }
 
-        // -----------------------------
-        // RSI + MACD placeholders
-        // (I can fully implement these next)
-        // -----------------------------
+        // RSI (separate panel)
         if (indicators.rsi) {
-          console.log("RSI enabled — ready to implement");
+          const rsiPane = chart.addLineSeries({
+            color: "#fbbf24",
+            lineWidth: 2,
+            priceScaleId: "rsi",
+          });
+
+          chart.priceScale("rsi").applyOptions({
+            scaleMargins: { top: 0.8, bottom: 0 },
+          });
+
+          const rsi = calculateRSI(data, 14);
+          rsiPane.setData(rsi);
         }
 
+        // MACD (separate panel)
         if (indicators.macd) {
-          console.log("MACD enabled — ready to implement");
+          const macdPane = chart.addLineSeries({
+            color: "#f472b6",
+            lineWidth: 2,
+            priceScaleId: "macd",
+          });
+
+          chart.priceScale("macd").applyOptions({
+            scaleMargins: { top: 0.6, bottom: 0 },
+          });
+
+          const macd = calculateMACD(data);
+          macdPane.setData(macd);
         }
       });
 
@@ -125,45 +146,70 @@ export default function PriceChart({
   );
 }
 
-// --------------------------------------------------
-// Indicator Calculations
-// --------------------------------------------------
+// ----------------------
+// INDICATOR FUNCTIONS
+// ----------------------
 
 function calculateSMA(data: any[], length: number) {
-  const result: any[] = [];
-
-  for (let i = 0; i < data.length; i++) {
-    if (i < length) continue;
-
+  return data.map((c, i) => {
+    if (i < length) return { time: c.time, value: null };
     const slice = data.slice(i - length, i);
     const avg =
-      slice.reduce((sum: number, c: any) => sum + c.close, 0) / length;
-
-    result.push({
-      time: data[i].time as UTCTimestamp,
-      value: avg,
-    });
-  }
-
-  return result;
+      slice.reduce((sum, x) => sum + (x.close || 0), 0) / slice.length;
+    return { time: c.time, value: avg };
+  });
 }
 
 function calculateEMA(data: any[], length: number) {
-  const result: any[] = [];
+  let emaPrev = data[0].close;
   const k = 2 / (length + 1);
 
-  let emaPrev = data[0].close;
-
-  for (let i = 1; i < data.length; i++) {
-    const close = data[i].close;
-    const ema = close * k + emaPrev * (1 - k);
+  return data.map((c, i) => {
+    if (i === 0) return { time: c.time, value: emaPrev };
+    const ema = c.close * k + emaPrev * (1 - k);
     emaPrev = ema;
+    return { time: c.time, value: ema };
+  });
+}
 
-    result.push({
-      time: data[i].time as UTCTimestamp,
-      value: ema,
-    });
+function calculateRSI(data: any[], length: number) {
+  let gains = 0;
+  let losses = 0;
+
+  for (let i = 1; i <= length; i++) {
+    const diff = data[i].close - data[i - 1].close;
+    if (diff >= 0) gains += diff;
+    else losses -= diff;
   }
 
-  return result;
+  let avgGain = gains / length;
+  let avgLoss = losses / length;
+
+  const rsi = data.map((c, i) => {
+    if (i < length) return { time: c.time, value: null };
+
+    const diff = data[i].close - data[i - 1].close;
+    const gain = diff > 0 ? diff : 0;
+    const loss = diff < 0 ? -diff : 0;
+
+    avgGain = (avgGain * (length - 1) + gain) / length;
+    avgLoss = (avgLoss * (length - 1) + loss) / length;
+
+    const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+    const rsiValue = 100 - 100 / (1 + rs);
+
+    return { time: c.time, value: rsiValue };
+  });
+
+  return rsi;
+}
+
+function calculateMACD(data: any[]) {
+  const ema12 = calculateEMA(data, 12);
+  const ema26 = calculateEMA(data, 26);
+
+  return data.map((c, i) => ({
+    time: c.time,
+    value: ema12[i].value - ema26[i].value,
+  }));
 }
