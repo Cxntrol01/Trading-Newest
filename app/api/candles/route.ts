@@ -3,26 +3,33 @@ import { NextResponse } from "next/server";
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const symbol = searchParams.get("symbol") || "AAPL";
-  const interval = searchParams.get("interval") || "60";
+  const interval = searchParams.get("interval") || "1h"; // 1m, 5m, 15m, 1h, 1d
+  const range = searchParams.get("range") || "1mo";      // 1d, 5d, 1mo, 3mo, 6mo, 1y
 
-  const key = process.env.NEXT_PUBLIC_FINNHUB_KEY;
-
-  const url = `https://finnhub.io/api/v1/stock/candle?symbol=${symbol}&resolution=${interval}&count=200&token=${key}`;
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${interval}&range=${range}`;
 
   const res = await fetch(url);
-  const data = await res.json();
-
-  if (data.s !== "ok") {
+  if (!res.ok) {
     return NextResponse.json([]);
   }
 
-  const candles = data.t.map((t: number, i: number) => ({
-    time: t,
-    open: data.o[i],
-    high: data.h[i],
-    low: data.l[i],
-    close: data.c[i],
-  }));
+  const json = await res.json();
+
+  const result = json?.chart?.result?.[0];
+  if (!result || !result.timestamp || !result.indicators?.quote?.[0]) {
+    return NextResponse.json([]);
+  }
+
+  const timestamps: number[] = result.timestamp;
+  const quote = result.indicators.quote[0];
+
+  const candles = timestamps.map((t, i) => ({
+    time: t, // seconds since epoch, works with lightweight-charts
+    open: quote.open[i],
+    high: quote.high[i],
+    low: quote.low[i],
+    close: quote.close[i],
+  })).filter(c => c.open != null && c.high != null && c.low != null && c.close != null);
 
   return NextResponse.json(candles);
 }
