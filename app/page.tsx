@@ -7,6 +7,16 @@ import PriceChart from "@/components/PriceChart";
 export default function HomePage() {
   const [symbol, setSymbol] = useState("AAPL");
 
+  // Default indicator state for the main chart
+  const [indicators, setIndicators] = useState({
+    sma: false,
+    ema: false,
+    rsi: false,
+    macd: false,
+    vwap: false,
+    bb: false,
+  });
+
   return (
     <div className="min-h-screen bg-black text-white p-4">
       <div className="max-w-5xl mx-auto flex flex-col gap-6">
@@ -26,7 +36,7 @@ export default function HomePage() {
           <PriceChart
             symbol={symbol}
             timeframe="1D"
-            indicators={{ sma: false, ema: false, rsi: false, macd: false }}
+            indicators={indicators}
           />
         </div>
 
