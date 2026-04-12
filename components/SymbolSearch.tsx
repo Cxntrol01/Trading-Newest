@@ -1,56 +1,56 @@
 "use client";
 
-import { useState } from "react";
-import { STOCK_SYMBOLS } from "@/data/symbols";
+import { useState, useEffect } from "react";
 
 export default function SymbolSearch({ onSelect }: { onSelect: (symbol: string) => void }) {
-  const [value, setValue] = useState("");
-  const [results, setResults] = useState<typeof STOCK_SYMBOLS>([]);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const handleChange = (text: string) => {
-    setValue(text);
-
-    if (!text.trim()) {
+  useEffect(() => {
+    if (query.length < 1) {
       setResults([]);
       return;
     }
 
-    const q = text.toUpperCase();
+    const timeout = setTimeout(async () => {
+      setLoading(true);
 
-    const filtered = STOCK_SYMBOLS.filter(
-      (s) =>
-        s.symbol.startsWith(q) ||
-        s.name.toUpperCase().includes(q)
-    ).slice(0, 8); // limit results
+      const res = await fetch(`/api/search?q=${query}`);
+      const data = await res.json();
 
-    setResults(filtered);
-  };
+      setResults(data.results);
+      setLoading(false);
+    }, 300); // debounce
 
-  const handleSelect = (symbol: string) => {
-    onSelect(symbol);
-    setValue(symbol);
-    setResults([]);
-  };
+    return () => clearTimeout(timeout);
+  }, [query]);
 
   return (
     <div className="relative w-full">
       <input
-        value={value}
-        onChange={(e) => handleChange(e.target.value)}
-        placeholder="Search stocks (AAPL, TSLA, MSFT...)"
-        className="px-3 py-2 bg-gray-800 rounded text-white w-full"
+        className="w-full p-2 border rounded bg-black text-white"
+        placeholder="Search stocks…"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
       />
 
+      {loading && <div className="absolute left-2 top-10 text-gray-400">Searching…</div>}
+
       {results.length > 0 && (
-        <div className="absolute top-full left-0 right-0 bg-gray-900 border border-gray-700 rounded mt-1 z-50">
+        <div className="absolute w-full bg-black border border-gray-700 rounded mt-1 max-h-64 overflow-y-auto z-50">
           {results.map((item) => (
             <div
               key={item.symbol}
-              onClick={() => handleSelect(item.symbol)}
-              className="px-3 py-2 hover:bg-gray-700 cursor-pointer text-white"
+              className="p-2 hover:bg-gray-800 cursor-pointer"
+              onClick={() => {
+                onSelect(item.symbol);
+                setQuery("");
+                setResults([]);
+              }}
             >
-              <span className="font-bold">{item.symbol}</span>
-              <span className="text-gray-400 ml-2">{item.name}</span>
+              <div className="text-white">{item.symbol}</div>
+              <div className="text-gray-400 text-sm">{item.name}</div>
             </div>
           ))}
         </div>
