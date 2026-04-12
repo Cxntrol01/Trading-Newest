@@ -1,113 +1,11 @@
 "use client";
 
-import { useState, useRef } from "react";
-import SymbolSearch from "@/components/SymbolSearch";
-import IndicatorToggles from "@/components/IndicatorToggles";
-import IndicatorSettingsPanel from "@/components/IndicatorSettingsPanel";
-import { defaultIndicatorSettings } from "@/lib/indicatorSettings";
+import WaffleMenu from "@/components/WaffleMenu";
 
-type Indicators = {
-  sma: boolean;
-  ema: boolean;
-  rsi: boolean;
-  macd: boolean;
-  vwap: boolean;
-  bb: boolean;
-  volume: boolean;
-  volumeMA: boolean;
-};
-
-type IndicatorKey = keyof Indicators;
-
-export default function HomePage() {
-  const [symbol, setSymbol] = useState("AAPL");
-
-  const indicatorMenuRef = useRef<HTMLDetailsElement | null>(null);
-
-  const [indicators, setIndicators] = useState<Indicators>({
-    sma: false,
-    ema: false,
-    rsi: false,
-    macd: false,
-    vwap: false,
-    bb: false,
-    volume: true,
-    volumeMA: false,
-  });
-
-  const [indicatorSettings, setIndicatorSettings] = useState(
-    defaultIndicatorSettings
-  );
-
-  const [openSettings, setOpenSettings] = useState<{
-    indicator: IndicatorKey;
-  } | null>(null);
-
-  const toggleIndicator = (key: IndicatorKey) => {
-    setIndicators((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
-  };
-
-  const updateIndicatorSettings = (
-    indicator: IndicatorKey,
-    newSettings: any
-  ) => {
-    setIndicatorSettings((prev) => ({
-      ...prev,
-      [indicator]: newSettings,
-    }));
-  };
-
+export default function Home() {
   return (
-    <div className="p-6 flex flex-col gap-6">
-
-      {/* Top controls */}
-      <div className="flex items-center gap-4">
-
-        {/* Symbol search */}
-        <div className="max-w-sm flex-1">
-          <SymbolSearch onSelect={(s) => setSymbol(s)} />
-        </div>
-
-        {/* Indicators dropdown */}
-        <div className="relative text-sm">
-          <details ref={indicatorMenuRef} className="group">
-            <summary className="cursor-pointer px-3 py-1.5 bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 select-none">
-              Indicators ▼
-            </summary>
-
-            <div className="absolute mt-2 bg-gray-900 border border-gray-700 rounded shadow-lg p-3 w-64 z-50">
-              <IndicatorToggles
-                indicators={indicators}
-                onToggle={(key) => toggleIndicator(key)}
-                onOpenSettings={(key) => {
-                  indicatorMenuRef.current?.removeAttribute("open");
-                  setOpenSettings({ indicator: key });
-                }}
-              />
-            </div>
-          </details>
-        </div>
-      </div>
-
-      {/* Settings panel */}
-      {openSettings && (
-        <IndicatorSettingsPanel
-          indicator={openSettings.indicator}
-          settings={indicatorSettings[openSettings.indicator]}
-          onChange={(newSettings) =>
-            updateIndicatorSettings(openSettings.indicator, newSettings)
-          }
-          onClose={() => setOpenSettings(null)}
-        />
-      )}
-
-      {/* ⭐ Chart removed from dashboard */}
-      <div className="text-gray-400 text-center py-20 border border-gray-800 rounded-lg">
-        Chart removed from dashboard
-      </div>
+    <div className="p-6">
+      <WaffleMenu />
     </div>
   );
 }
