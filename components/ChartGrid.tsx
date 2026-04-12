@@ -4,6 +4,7 @@ import { useState } from "react";
 import PriceChart from "@/components/PriceChart";
 import SymbolSearch from "@/components/SymbolSearch";
 import IndicatorSettingsPanel from "@/components/IndicatorSettingsPanel";
+import IndicatorToggles from "@/components/IndicatorToggles";
 import { defaultIndicatorSettings } from "@/lib/indicatorSettings";
 
 type Indicators = {
@@ -48,9 +49,9 @@ export default function ChartGrid() {
     indicator: IndicatorKey;
   } | null>(null);
 
-  // ------------------------------------------------------------
+  // -----------------------------
   // Layout update
-  // ------------------------------------------------------------
+  // -----------------------------
   const updateLayout = (count: number) => {
     setLayout(count);
 
@@ -79,9 +80,9 @@ export default function ChartGrid() {
     });
   };
 
-  // ------------------------------------------------------------
+  // -----------------------------
   // Symbol update
-  // ------------------------------------------------------------
+  // -----------------------------
   const updateSymbol = (index: number, symbol: string) => {
     setCharts((prev) => {
       const updated = [...prev];
@@ -90,9 +91,9 @@ export default function ChartGrid() {
     });
   };
 
-  // ------------------------------------------------------------
+  // -----------------------------
   // Timeframe update
-  // ------------------------------------------------------------
+  // -----------------------------
   const updateTimeframe = (index: number, timeframe: string) => {
     setCharts((prev) => {
       const updated = [...prev];
@@ -101,9 +102,9 @@ export default function ChartGrid() {
     });
   };
 
-  // ------------------------------------------------------------
+  // -----------------------------
   // Toggle indicator
-  // ------------------------------------------------------------
+  // -----------------------------
   const toggleIndicator = (index: number, key: IndicatorKey) => {
     setCharts((prev) => {
       const updated = [...prev];
@@ -112,9 +113,9 @@ export default function ChartGrid() {
     });
   };
 
-  // ------------------------------------------------------------
+  // -----------------------------
   // Update indicator settings
-  // ------------------------------------------------------------
+  // -----------------------------
   const updateIndicatorSettings = (
     chartIndex: number,
     indicator: IndicatorKey,
@@ -159,7 +160,7 @@ export default function ChartGrid() {
             className="border border-gray-800 rounded-lg bg-gray-900/40 h-[500px] overflow-hidden flex flex-col relative"
           >
 
-            {/* Indicator Settings Panel */}
+            {/* Settings Panel */}
             {openSettings && openSettings.chartIndex === i && (
               <IndicatorSettingsPanel
                 indicator={openSettings.indicator}
@@ -204,117 +205,18 @@ export default function ChartGrid() {
                   Indicators ▼
                 </summary>
 
-                <div className="absolute mt-2 bg-gray-900 border border-gray-700 rounded shadow-lg p-3 w-64 z-50 space-y-3">
-
-                  {/* TREND */}
-                  <div>
-                    <div className="text-gray-400 text-xs mb-1">Trend</div>
-
-                    {[
-                      { key: "sma", label: "SMA" },
-                      { key: "ema", label: "EMA" },
-                      { key: "vwap", label: "VWAP" },
-                    ].map((ind) => (
-                      <div
-                        key={ind.key}
-                        className="flex items-center justify-between px-2 py-1 hover:bg-gray-800 rounded"
-                      >
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={chart.indicators[ind.key as IndicatorKey]}
-                            onChange={() =>
-                              toggleIndicator(i, ind.key as IndicatorKey)
-                            }
-                          />
-                          {ind.label}
-                        </label>
-
-                        <button
-                          onClick={() =>
-                            setOpenSettings({
-                              chartIndex: i,
-                              indicator: ind.key as IndicatorKey,
-                            })
-                          }
-                          className="text-gray-400 hover:text-white"
-                        >
-                          ⚙️
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* OSCILLATORS */}
-                  <div>
-                    <div className="text-gray-400 text-xs mb-1">
-                      Oscillators
-                    </div>
-
-                    {[
-                      { key: "rsi", label: "RSI" },
-                      { key: "macd", label: "MACD" },
-                    ].map((ind) => (
-                      <div
-                        key={ind.key}
-                        className="flex items-center justify-between px-2 py-1 hover:bg-gray-800 rounded"
-                      >
-                        <label className="flex items-center gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={chart.indicators[ind.key as IndicatorKey]}
-                            onChange={() =>
-                              toggleIndicator(i, ind.key as IndicatorKey)
-                            }
-                          />
-                          {ind.label}
-                        </label>
-
-                        <button
-                          onClick={() =>
-                            setOpenSettings({
-                              chartIndex: i,
-                              indicator: ind.key as IndicatorKey,
-                            })
-                          }
-                          className="text-gray-400 hover:text-white"
-                        >
-                          ⚙️
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* VOLATILITY */}
-                  <div>
-                    <div className="text-gray-400 text-xs mb-1">
-                      Volatility
-                    </div>
-
-                    <div className="flex items-center justify-between px-2 py-1 hover:bg-gray-800 rounded">
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={chart.indicators.bb}
-                          onChange={() => toggleIndicator(i, "bb")}
-                        />
-                        Bollinger Bands
-                      </label>
-
-                      <button
-                        onClick={() =>
-                          setOpenSettings({
-                            chartIndex: i,
-                            indicator: "bb",
-                          })
-                        }
-                        className="text-gray-400 hover:text-white"
-                      >
-                        ⚙️
-                      </button>
-                    </div>
-                  </div>
-
+                {/* ⭐ NEW: IndicatorToggles inside dropdown */}
+                <div className="absolute mt-2 bg-gray-900 border border-gray-700 rounded shadow-lg p-3 w-64 z-50">
+                  <IndicatorToggles
+                    indicators={chart.indicators}
+                    onToggle={(key) => toggleIndicator(i, key)}
+                    onOpenSettings={(key) =>
+                      setOpenSettings({
+                        chartIndex: i,
+                        indicator: key,
+                      })
+                    }
+                  />
                 </div>
               </details>
 
@@ -335,4 +237,4 @@ export default function ChartGrid() {
       </div>
     </div>
   );
-      }
+            }
