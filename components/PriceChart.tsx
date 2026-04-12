@@ -33,6 +33,7 @@ export default function PriceChart({
 
   const candleRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const volumeRef = useRef<ISeriesApi<"Histogram"> | null>(null);
+
   const smaRef = useRef<ISeriesApi<"Line"> | null>(null);
   const emaRef = useRef<ISeriesApi<"Line"> | null>(null);
   const rsiRef = useRef<ISeriesApi<"Line"> | null>(null);
@@ -49,6 +50,9 @@ export default function PriceChart({
     "5m": "5m",
   };
 
+  // ------------------------------------------------------------
+  // 1) CREATE CHART + CANDLE + VOLUME SERIES (RUNS ONCE)
+  // ------------------------------------------------------------
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -70,6 +74,18 @@ export default function PriceChart({
 
     chartRef.current = chart;
 
+    // Create candle + volume series ONCE
+    candleRef.current = chart.addCandlestickSeries();
+
+    volumeRef.current = chart.addHistogramSeries({
+      priceFormat: { type: "volume" },
+      priceScaleId: "volume",
+    });
+
+    chart.priceScale("volume").applyOptions({
+      scaleMargins: { top: 0.8, bottom: 0 },
+    });
+
     const resizeObserver = new ResizeObserver(() => {
       if (containerRef.current && chartRef.current) {
         chartRef.current.applyOptions({
@@ -87,11 +103,38 @@ export default function PriceChart({
     };
   }, []);
 
+  // ------------------------------------------------------------
+  // 2) FETCH CANDLES ONLY WHEN SYMBOL OR TIMEFRAME CHANGES
+  // ------------------------------------------------------------
   useEffect(() => {
-    const chart = chartRef.current;
-    if (!chart) return;
+    if (!chartRef.current || !candleRef.current || !volumeRef.current) return;
 
-    // Remove ONLY indicator series (not candles or volume)
+    fetch(
+      `/api/candles?symbol=${symbol}&interval=${intervalMap[timeframe]}&range=1mo`
+    )
+      .then((res) => res.json())
+      .then((data) => {
+        candleRef.current!.setData(data);
+
+        const volumeData: HistogramData[] = data.map((c: any) => ({
+          time: c.time,
+          value: c.volume ?? 0,
+          color: c.close >= c.open ? "#22c55e" : "#ef4444",
+        }));
+
+        volumeRef.current!.setData(volumeData);
+      });
+  }, [symbol, timeframe]);
+
+  // ------------------------------------------------------------
+  // 3) UPDATE INDICATORS ONLY WHEN INDICATORS CHANGE
+  // ------------------------------------------------------------
+  useEffect(() => {
+    if (!chartRef.current) return;
+
+    const chart = chartRef.current;
+
+    // Remove ONLY indicator series
     [smaRef, emaRef, rsiRef, macdRef, bbUpperRef, bbLowerRef, vwapRef].forEach(
       (ref) => {
         if (ref.current) {
@@ -101,104 +144,89 @@ export default function PriceChart({
       }
     );
 
-    // Candle + volume series stay persistent
-    if (!candleRef.current) {
-      candleRef.current = chart.addCandlestickSeries();
-    }
-    if (!volumeRef.current) {
-      volumeRef.current = chart.addHistogramSeries({
-        priceFormat: { type: "volume" },
-        priceScaleId: "volume",
+    // Add indicators
+    if (indicators.bb) {
+      const bb = calculateBollingerBands(
+        candleRef.current!.getData() as any[],
+        20,
+        2
+      );
+
+      bbUpperRef.current = chart.addLineSeries({
+        color: "#f97316",
+        lineWidth: 1,
+      });
+      bbLowerRef.current = chart.addLineSeries({
+        color: "#f97316",
+        lineWidth: 1,
       });
 
-      chart.priceScale("volume").applyOptions({
+      bbUpperRef.current.setData(bb.upper);
+      bbLowerRef.current.setData(bb.lower);
+    }
+
+    if (indicators.vwap) {
+      vwapRef.current = chart.addLineSeries({
+        color: "#a855f7",
+        lineWidth: 2,
+      });
+      vwapRef.current.setData(
+        calculateVWAP(candleRef.current!.getData() as any[])
+      );
+    }
+
+    if (indicators.sma) {
+      smaRef.current = chart.addLineSeries({
+        color: "#4ade80",
+        lineWidth: 2,
+      });
+      smaRef.current.setData(
+        calculateSMA(candleRef.current!.getData() as any[], 14)
+      );
+    }
+
+    if (indicators.ema) {
+      emaRef.current = chart.addLineSeries({
+        color: "#60a5fa",
+        lineWidth: 2,
+      });
+      emaRef.current.setData(
+        calculateEMA(candleRef.current!.getData() as any[], 14)
+      );
+    }
+
+    if (indicators.rsi) {
+      chart.priceScale("rsi").applyOptions({
         scaleMargins: { top: 0.8, bottom: 0 },
       });
+
+      rsiRef.current = chart.addLineSeries({
+        color: "#fbbf24",
+        lineWidth: 2,
+        priceScaleId: "rsi",
+      });
+
+      rsiRef.current.setData(
+        calculateRSI(candleRef.current!.getData() as any[], 14)
+      );
     }
 
-    fetch(
-      `/api/candles?symbol=${symbol}&interval=${intervalMap[timeframe]}&range=1mo`
-    )
-      .then((res) => res.json())
-      .then((data) => {
-        candleRef.current?.setData(data);
-
-        const volumeData: HistogramData[] = data.map((c: any) => ({
-          time: c.time,
-          value: c.volume ?? 0,
-          color: c.close >= c.open ? "#22c55e" : "#ef4444",
-        }));
-        volumeRef.current?.setData(volumeData);
-
-        if (indicators.bb) {
-          const bb = calculateBollingerBands(data, 20, 2);
-
-          bbUpperRef.current = chart.addLineSeries({
-            color: "#f97316",
-            lineWidth: 1,
-          });
-          bbLowerRef.current = chart.addLineSeries({
-            color: "#f97316",
-            lineWidth: 1,
-          });
-
-          bbUpperRef.current.setData(bb.upper);
-          bbLowerRef.current.setData(bb.lower);
-        }
-
-        if (indicators.vwap) {
-          vwapRef.current = chart.addLineSeries({
-            color: "#a855f7",
-            lineWidth: 2,
-          });
-          vwapRef.current.setData(calculateVWAP(data));
-        }
-
-        if (indicators.sma) {
-          smaRef.current = chart.addLineSeries({
-            color: "#4ade80",
-            lineWidth: 2,
-          });
-          smaRef.current.setData(calculateSMA(data, 14));
-        }
-
-        if (indicators.ema) {
-          emaRef.current = chart.addLineSeries({
-            color: "#60a5fa",
-            lineWidth: 2,
-          });
-          emaRef.current.setData(calculateEMA(data, 14));
-        }
-
-        if (indicators.rsi) {
-          chart.priceScale("rsi").applyOptions({
-            scaleMargins: { top: 0.8, bottom: 0 },
-          });
-
-          rsiRef.current = chart.addLineSeries({
-            color: "#fbbf24",
-            lineWidth: 2,
-            priceScaleId: "rsi",
-          });
-
-          rsiRef.current.setData(calculateRSI(data, 14));
-        }
-
-        if (indicators.macd) {
-          chart.priceScale("macd").applyOptions({
-            scaleMargins: { top: 0.6, bottom: 0 },
-          });
-
-          macdRef.current = chart.addLineSeries({
-            color: "#f472b6",
-            lineWidth: 2,
-            priceScaleId: "macd",
-          });
-
-          macdRef.current.setData(calculateMACD(data));
-        }
+    if (indicators.macd) {
+      chart.priceScale("macd").applyOptions({
+        scaleMargins: { top: 0.6, bottom: 0 },
       });
-  }, [symbol, timeframe, JSON.stringify(indicators)]); // ⭐ FIXED HERE
+
+      macdRef.current = chart.addLineSeries({
+        color: "#f472b6",
+        lineWidth: 2,
+        priceScaleId: "macd",
+      });
+
+      macdRef.current.setData(
+        calculateMACD(candleRef.current!.getData() as any[])
+      );
+    }
+  }, [JSON.stringify(indicators)]);
 
   return (
     <div
@@ -208,7 +236,9 @@ export default function PriceChart({
   );
 }
 
-// ---------- INDICATORS ----------
+// ------------------------------------------------------------
+// INDICATOR CALCULATIONS (NaN instead of undefined)
+// ------------------------------------------------------------
 
 function calculateSMA(data: any[], length: number): LineData[] {
   return data.map((c, i) => {
@@ -318,4 +348,4 @@ function calculateVWAP(data: any[]): LineData[] {
 
     return { time: c.time, value: vwap };
   });
-      }
+          }
