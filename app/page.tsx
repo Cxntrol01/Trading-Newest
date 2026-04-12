@@ -3,6 +3,8 @@
 import { useState } from "react";
 import PriceChart from "@/components/PriceChart";
 import SymbolSearch from "@/components/SymbolSearch";
+import IndicatorToggles from "@/components/IndicatorToggles";
+import IndicatorSettingsPanel from "@/components/IndicatorSettingsPanel";
 import { defaultIndicatorSettings } from "@/lib/indicatorSettings";
 
 type Indicators = {
@@ -13,6 +15,8 @@ type Indicators = {
   vwap: boolean;
   bb: boolean;
 };
+
+type IndicatorKey = keyof Indicators;
 
 export default function HomePage() {
   const [symbol, setSymbol] = useState("AAPL");
@@ -26,47 +30,74 @@ export default function HomePage() {
     bb: false,
   });
 
-  // NEW: indicator settings state
   const [indicatorSettings, setIndicatorSettings] = useState(
     defaultIndicatorSettings
   );
 
-  const toggleIndicator = (key: keyof Indicators) => {
+  const [openSettings, setOpenSettings] = useState<IndicatorKey | null>(null);
+
+  const toggleIndicator = (key: IndicatorKey) => {
     setIndicators((prev) => ({
       ...prev,
       [key]: !prev[key],
     }));
   };
 
+  const updateIndicatorSettings = (indicator: IndicatorKey, newSettings: any) => {
+    setIndicatorSettings((prev) => ({
+      ...prev,
+      [indicator]: newSettings,
+    }));
+  };
+
   return (
     <div className="p-6 flex flex-col gap-6">
 
-      {/* Symbol Search */}
-      <div className="max-w-sm">
-        <SymbolSearch onSelect={(s) => setSymbol(s)} />
+      {/* Top controls */}
+      <div className="flex items-center gap-4">
+
+        {/* Symbol search */}
+        <div className="max-w-sm flex-1">
+          <SymbolSearch onSelect={(s) => setSymbol(s)} />
+        </div>
+
+        {/* Indicators dropdown */}
+        <div className="relative text-sm">
+          <details className="group">
+            <summary className="cursor-pointer px-3 py-1.5 bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 select-none">
+              Indicators ▼
+            </summary>
+
+            <div className="absolute mt-2 bg-gray-900 border border-gray-700 rounded shadow-lg p-3 w-64 z-50">
+              <IndicatorToggles
+                indicators={indicators}
+                onToggle={(key) => toggleIndicator(key)}
+                onOpenSettings={(key) => setOpenSettings(key)}
+              />
+            </div>
+          </details>
+        </div>
       </div>
 
-      {/* Simple indicator toggles (homepage only) */}
-      <div className="flex gap-4 text-white">
-        {Object.keys(indicators).map((key) => (
-          <label key={key} className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={indicators[key as keyof Indicators]}
-              onChange={() => toggleIndicator(key as keyof Indicators)}
-            />
-            {key.toUpperCase()}
-          </label>
-        ))}
-      </div>
+      {/* Indicator settings panel */}
+      {openSettings && (
+        <IndicatorSettingsPanel
+          indicator={openSettings}
+          settings={indicatorSettings[openSettings]}
+          onChange={(newSettings) =>
+            updateIndicatorSettings(openSettings, newSettings)
+          }
+          onClose={() => setOpenSettings(null)}
+        />
+      )}
 
       {/* Chart */}
-      <div className="w-full h-[500px] bg-gray-900 rounded-lg overflow-hidden">
+      <div className="w-full h-[500px] bg-gray-900 rounded-lg overflow-hidden relative">
         <PriceChart
           symbol={symbol}
           timeframe="1D"
           indicators={indicators}
-          indicatorSettings={indicatorSettings}   // ⭐ REQUIRED FIX
+          indicatorSettings={indicatorSettings}
         />
       </div>
     </div>
