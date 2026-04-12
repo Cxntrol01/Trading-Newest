@@ -239,7 +239,7 @@ export default function PriceChart({
 
 function calculateSMA(data: any[], length: number): LineData[] {
   return data.map((c, i) => {
-    if (i < length) return { time: c.time, value: null };
+    if (i < length) return { time: c.time, value: undefined };
     const slice = data.slice(i - length, i);
     const avg = slice.reduce((sum: number, x: any) => sum + x.close, 0) / length;
     return { time: c.time, value: avg };
@@ -272,7 +272,7 @@ function calculateRSI(data: any[], length: number): LineData[] {
   let avgLoss = losses / length;
 
   return data.map((c, i) => {
-    if (i < length) return { time: c.time, value: null };
+    if (i < length) return { time: c.time, value: undefined };
 
     const diff = data[i].close - data[i - 1].close;
     const gain = diff > 0 ? diff : 0;
@@ -308,8 +308,8 @@ function calculateBollingerBands(
 
   data.forEach((c, i) => {
     if (i < length) {
-      upper.push({ time: c.time, value: null });
-      lower.push({ time: c.time, value: null });
+      upper.push({ time: c.time, value: undefined });
+      lower.push({ time: c.time, value: undefined });
       return;
     }
 
@@ -345,4 +345,4 @@ function calculateVWAP(data: any[]): LineData[] {
 
     return { time: c.time, value: vwap };
   });
-    }
+        }
