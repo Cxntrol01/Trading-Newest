@@ -15,6 +15,8 @@ type Indicators = {
   ema: boolean;
   rsi: boolean;
   macd: boolean;
+  vwap: boolean;
+  bb: boolean;
 };
 
 export default function PriceChart({
@@ -29,6 +31,17 @@ export default function PriceChart({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
 
+  // Track all series manually
+  const candleRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const volumeRef = useRef<ISeriesApi<"Histogram"> | null>(null);
+  const smaRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const emaRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const rsiRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const macdRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const bbUpperRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const bbLowerRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const vwapRef = useRef<ISeriesApi<"Line"> | null>(null);
+
   const intervalMap: Record<string, string> = {
     "1D": "1d",
     "1H": "1h",
@@ -37,6 +50,7 @@ export default function PriceChart({
     "5m": "5m",
   };
 
+  // Create chart once
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -51,12 +65,6 @@ export default function PriceChart({
       },
       crosshair: {
         mode: CrosshairMode.Normal,
-      },
-      rightPriceScale: {
-        borderColor: "#374151",
-      },
-      timeScale: {
-        borderColor: "#374151",
       },
       width: containerRef.current.clientWidth,
       height: containerRef.current.clientHeight,
@@ -81,22 +89,35 @@ export default function PriceChart({
     };
   }, []);
 
+  // Load candles + indicators
   useEffect(() => {
-    if (!chartRef.current) return;
-
     const chart = chartRef.current;
+    if (!chart) return;
 
-    // Clear all series
-    chart.getSeries().forEach((s) => chart.removeSeries(s));
+    // Remove old series
+    [
+      candleRef,
+      volumeRef,
+      smaRef,
+      emaRef,
+      rsiRef,
+      macdRef,
+      bbUpperRef,
+      bbLowerRef,
+      vwapRef,
+    ].forEach((ref) => {
+      if (ref.current) {
+        chart.removeSeries(ref.current);
+        ref.current = null;
+      }
+    });
 
-    // Main price series
-    const candleSeries = chart.addCandlestickSeries();
+    // Create new series
+    candleRef.current = chart.addCandlestickSeries();
 
-    // Volume series
-    const volumeSeries = chart.addHistogramSeries({
+    volumeRef.current = chart.addHistogramSeries({
       priceFormat: { type: "volume" },
       priceScaleId: "volume",
-      color: "#4b5563",
     });
 
     chart.priceScale("volume").applyOptions({
@@ -108,7 +129,7 @@ export default function PriceChart({
     )
       .then((res) => res.json())
       .then((data) => {
-        candleSeries.setData(data);
+        candleRef.current?.setData(data);
 
         // Volume
         const volumeData: HistogramData[] = data.map((c: any) => ({
@@ -116,74 +137,92 @@ export default function PriceChart({
           value: c.volume ?? 0,
           color: c.close >= c.open ? "#22c55e" : "#ef4444",
         }));
-        volumeSeries.setData(volumeData);
+        volumeRef.current?.setData(volumeData);
 
+        // --------------------
         // Bollinger Bands
-        const bb = calculateBollingerBands(data, 20, 2);
-        const bbUpper = chart.addLineSeries({
-          color: "#f97316",
-          lineWidth: 1,
-        });
-        const bbLower = chart.addLineSeries({
-          color: "#f97316",
-          lineWidth: 1,
-        });
-        bbUpper.setData(bb.upper);
-        bbLower.setData(bb.lower);
+        // --------------------
+        if (indicators.bb) {
+          const bb = calculateBollingerBands(data, 20, 2);
 
+          bbUpperRef.current = chart.addLineSeries({
+            color: "#f97316",
+            lineWidth: 1,
+          });
+          bbLowerRef.current = chart.addLineSeries({
+            color: "#f97316",
+            lineWidth: 1,
+          });
+
+          bbUpperRef.current.setData(bb.upper);
+          bbLowerRef.current.setData(bb.lower);
+        }
+
+        // --------------------
         // VWAP
-        const vwapSeries = chart.addLineSeries({
-          color: "#a855f7",
-          lineWidth: 2,
-        });
-        vwapSeries.setData(calculateVWAP(data));
+        // --------------------
+        if (indicators.vwap) {
+          vwapRef.current = chart.addLineSeries({
+            color: "#a855f7",
+            lineWidth: 2,
+          });
+          vwapRef.current.setData(calculateVWAP(data));
+        }
 
+        // --------------------
         // SMA
+        // --------------------
         if (indicators.sma) {
-          const smaSeries = chart.addLineSeries({
+          smaRef.current = chart.addLineSeries({
             color: "#4ade80",
             lineWidth: 2,
           });
-          smaSeries.setData(calculateSMA(data, 14));
+          smaRef.current.setData(calculateSMA(data, 14));
         }
 
+        // --------------------
         // EMA
+        // --------------------
         if (indicators.ema) {
-          const emaSeries = chart.addLineSeries({
+          emaRef.current = chart.addLineSeries({
             color: "#60a5fa",
             lineWidth: 2,
           });
-          emaSeries.setData(calculateEMA(data, 14));
+          emaRef.current.setData(calculateEMA(data, 14));
         }
 
+        // --------------------
         // RSI
+        // --------------------
         if (indicators.rsi) {
           chart.priceScale("rsi").applyOptions({
             scaleMargins: { top: 0.8, bottom: 0 },
           });
 
-          const rsiSeries = chart.addLineSeries({
+          rsiRef.current = chart.addLineSeries({
             color: "#fbbf24",
             lineWidth: 2,
             priceScaleId: "rsi",
           });
 
-          rsiSeries.setData(calculateRSI(data, 14));
+          rsiRef.current.setData(calculateRSI(data, 14));
         }
 
+        // --------------------
         // MACD
+        // --------------------
         if (indicators.macd) {
           chart.priceScale("macd").applyOptions({
             scaleMargins: { top: 0.6, bottom: 0 },
           });
 
-          const macdSeries = chart.addLineSeries({
+          macdRef.current = chart.addLineSeries({
             color: "#f472b6",
             lineWidth: 2,
             priceScaleId: "macd",
           });
 
-          macdSeries.setData(calculateMACD(data));
+          macdRef.current.setData(calculateMACD(data));
         }
       });
   }, [symbol, timeframe, indicators]);
