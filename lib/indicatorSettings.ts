@@ -35,4 +35,11 @@ export const defaultIndicatorSettings = {
     mult: 2,
     color: "#f97316",
   },
+
+  // ⭐ NEW
+  volume: {
+    colorUp: "#22c55e",
+    colorDown: "#ef4444",
+    scale: "volume",
+  },
 };
