@@ -4,10 +4,27 @@ import { useState } from "react";
 import PriceChart from "@/components/PriceChart";
 import SymbolSearch from "@/components/SymbolSearch";
 
+type Indicators = {
+  sma: boolean;
+  ema: boolean;
+  rsi: boolean;
+  macd: boolean;
+  vwap: boolean;
+  bb: boolean;
+};
+
+type ChartConfig = {
+  symbol: string;
+  timeframe: string;
+  indicators: Indicators;
+};
+
+type IndicatorKey = keyof Indicators;
+
 export default function ChartGrid() {
   const [layout, setLayout] = useState(1);
 
-  const [charts, setCharts] = useState([
+  const [charts, setCharts] = useState<ChartConfig[]>([
     {
       symbol: "AAPL",
       timeframe: "1D",
@@ -63,7 +80,7 @@ export default function ChartGrid() {
     });
   };
 
-  const toggleIndicator = (index: number, key: string) => {
+  const toggleIndicator = (index: number, key: IndicatorKey) => {
     setCharts((prev) => {
       const updated = [...prev];
       updated[index].indicators[key] = !updated[index].indicators[key];
@@ -73,6 +90,8 @@ export default function ChartGrid() {
 
   return (
     <div className="flex flex-col gap-4">
+
+      {/* Layout buttons */}
       <div className="flex items-center gap-3">
         {[1, 2, 4].map((n) => (
           <button
@@ -89,6 +108,7 @@ export default function ChartGrid() {
         ))}
       </div>
 
+      {/* Chart Grid */}
       <div
         className={`grid gap-6 ${
           layout === 1 ? "grid-cols-1" : "grid-cols-2"
@@ -99,6 +119,8 @@ export default function ChartGrid() {
             key={i}
             className="border border-gray-800 rounded-lg bg-gray-900/40 h-[500px] overflow-hidden flex flex-col"
           >
+
+            {/* Per-chart controls */}
             <div className="p-2 border-b border-gray-800 bg-gray-900 flex items-center gap-3">
               <div className="flex-1">
                 <SymbolSearch onSelect={(s) => updateSymbol(i, s)} />
@@ -117,6 +139,89 @@ export default function ChartGrid() {
               </select>
             </div>
 
+            {/* Indicators dropdown */}
+            <div className="p-2 border-b border-gray-800 bg-gray-800 flex items-center text-sm relative">
+
+              <details className="group">
+                <summary className="cursor-pointer px-3 py-1.5 bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 select-none">
+                  Indicators ▼
+                </summary>
+
+                <div className="absolute mt-2 bg-gray-900 border border-gray-700 rounded shadow-lg p-3 w-56 z-50 space-y-3">
+
+                  {/* TREND */}
+                  <div>
+                    <div className="text-gray-400 text-xs mb-1">Trend</div>
+
+                    {[
+                      { key: "sma", label: "SMA" },
+                      { key: "ema", label: "EMA" },
+                      { key: "vwap", label: "VWAP" },
+                    ].map((ind) => (
+                      <label
+                        key={ind.key}
+                        className="flex items-center gap-2 px-2 py-1 hover:bg-gray-800 rounded cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={chart.indicators[ind.key as IndicatorKey]}
+                          onChange={() =>
+                            toggleIndicator(i, ind.key as IndicatorKey)
+                          }
+                        />
+                        {ind.label}
+                      </label>
+                    ))}
+                  </div>
+
+                  {/* OSCILLATORS */}
+                  <div>
+                    <div className="text-gray-400 text-xs mb-1">
+                      Oscillators
+                    </div>
+
+                    {[
+                      { key: "rsi", label: "RSI" },
+                      { key: "macd", label: "MACD" },
+                    ].map((ind) => (
+                      <label
+                        key={ind.key}
+                        className="flex items-center gap-2 px-2 py-1 hover:bg-gray-800 rounded cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={chart.indicators[ind.key as IndicatorKey]}
+                          onChange={() =>
+                            toggleIndicator(i, ind.key as IndicatorKey)
+                          }
+                        />
+                        {ind.label}
+                      </label>
+                    ))}
+                  </div>
+
+                  {/* VOLATILITY */}
+                  <div>
+                    <div className="text-gray-400 text-xs mb-1">
+                      Volatility
+                    </div>
+
+                    <label className="flex items-center gap-2 px-2 py-1 hover:bg-gray-800 rounded cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={chart.indicators.bb}
+                        onChange={() => toggleIndicator(i, "bb")}
+                      />
+                      Bollinger Bands
+                    </label>
+                  </div>
+
+                </div>
+              </details>
+
+            </div>
+
+            {/* Chart */}
             <div className="flex-1">
               <PriceChart
                 symbol={chart.symbol}
@@ -124,9 +229,10 @@ export default function ChartGrid() {
                 indicators={chart.indicators}
               />
             </div>
+
           </div>
         ))}
       </div>
     </div>
   );
-}
+              }
