@@ -12,6 +12,8 @@ type ChartConfig = {
     ema: boolean;
     rsi: boolean;
     macd: boolean;
+    vwap: boolean;
+    bb: boolean;
   };
 };
 
@@ -22,7 +24,14 @@ export default function MultiChart() {
     {
       symbol: "AAPL",
       timeframe: "1D",
-      indicators: { sma: false, ema: false, rsi: false, macd: false },
+      indicators: {
+        sma: false,
+        ema: false,
+        rsi: false,
+        macd: false,
+        vwap: false,
+        bb: false,
+      },
     },
   ]);
 
@@ -36,7 +45,14 @@ export default function MultiChart() {
         updated.push({
           symbol: "AAPL",
           timeframe: "1D",
-          indicators: { sma: false, ema: false, rsi: false, macd: false },
+          indicators: {
+            sma: false,
+            ema: false,
+            rsi: false,
+            macd: false,
+            vwap: false,
+            bb: false,
+          },
         });
       }
 
@@ -60,7 +76,10 @@ export default function MultiChart() {
     });
   };
 
-  const toggleIndicator = (index: number, key: keyof ChartConfig["indicators"]) => {
+  const toggleIndicator = (
+    index: number,
+    key: keyof ChartConfig["indicators"]
+  ) => {
     setCharts((prev) => {
       const updated = [...prev];
       updated[index].indicators[key] = !updated[index].indicators[key];
@@ -70,6 +89,7 @@ export default function MultiChart() {
 
   return (
     <div className="flex flex-col gap-4">
+
       {/* Layout buttons */}
       <div className="flex items-center gap-3">
         {[1, 2, 4].map((n) => (
@@ -98,6 +118,7 @@ export default function MultiChart() {
             key={i}
             className="border border-gray-800 rounded-lg bg-gray-900/40 h-[500px] overflow-hidden flex flex-col"
           >
+
             {/* Per-chart controls */}
             <div className="p-2 border-b border-gray-800 bg-gray-900 flex items-center gap-3">
               <div className="flex-1">
@@ -117,21 +138,107 @@ export default function MultiChart() {
               </select>
             </div>
 
-            {/* Indicator toggles */}
-            <div className="p-2 border-b border-gray-800 bg-gray-800 flex gap-2 text-sm">
-              {["sma", "ema", "rsi", "macd"].map((ind) => (
-                <button
-                  key={ind}
-                  onClick={() => toggleIndicator(i, ind as any)}
-                  className={`px-2 py-1 rounded border ${
-                    chart.indicators[ind as keyof ChartConfig["indicators"]]
-                      ? "bg-blue-600 border-blue-500"
-                      : "bg-gray-700 border-gray-600 hover:bg-gray-600"
-                  }`}
-                >
-                  {ind.toUpperCase()}
-                </button>
-              ))}
+            {/* Indicator Dropdown */}
+            <div className="p-2 border-b border-gray-800 bg-gray-800 flex items-center text-sm relative">
+
+              <details className="group">
+                <summary className="cursor-pointer px-3 py-1.5 bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 select-none">
+                  Indicators ▼
+                </summary>
+
+                <div className="absolute mt-2 bg-gray-900 border border-gray-700 rounded shadow-lg p-3 w-56 z-50 space-y-3">
+
+                  {/* TREND */}
+                  <div>
+                    <div className="text-gray-400 text-xs mb-1">Trend</div>
+
+                    {[
+                      { key: "sma", label: "SMA" },
+                      { key: "ema", label: "EMA" },
+                      { key: "vwap", label: "VWAP" },
+                    ].map((ind) => (
+                      <label
+                        key={ind.key}
+                        className="flex items-center gap-2 px-2 py-1 hover:bg-gray-800 rounded cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={
+                            chart.indicators[
+                              ind.key as keyof typeof chart.indicators
+                            ]
+                          }
+                          onChange={() =>
+                            toggleIndicator(i, ind.key as any)
+                          }
+                        />
+                        {ind.label}
+                      </label>
+                    ))}
+                  </div>
+
+                  {/* OSCILLATORS */}
+                  <div>
+                    <div className="text-gray-400 text-xs mb-1">
+                      Oscillators
+                    </div>
+
+                    {[
+                      { key: "rsi", label: "RSI" },
+                      { key: "macd", label: "MACD" },
+                    ].map((ind) => (
+                      <label
+                        key={ind.key}
+                        className="flex items-center gap-2 px-2 py-1 hover:bg-gray-800 rounded cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={
+                            chart.indicators[
+                              ind.key as keyof typeof chart.indicators
+                            ]
+                          }
+                          onChange={() =>
+                            toggleIndicator(i, ind.key as any)
+                          }
+                        />
+                        {ind.label}
+                      </label>
+                    ))}
+                  </div>
+
+                  {/* VOLATILITY */}
+                  <div>
+                    <div className="text-gray-400 text-xs mb-1">
+                      Volatility
+                    </div>
+
+                    {[
+                      { key: "bb", label: "Bollinger Bands" },
+                    ].map((ind) => (
+                      <label
+                        key={ind.key}
+                        className="flex items-center gap-2 px-2 py-1 hover:bg-gray-800 rounded cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={
+                            chart.indicators[
+                              ind.key as keyof typeof chart.indicators
+                            ]
+                          }
+                          onChange={() =>
+                            toggleIndicator(i, ind.key as any)
+                          }
+                        />
+                        {ind.label}
+                      </label>
+                    ))}
+                  </div>
+
+                </div>
+              </details>
+
             </div>
 
             {/* Chart */}
@@ -142,6 +249,7 @@ export default function MultiChart() {
                 indicators={chart.indicators}
               />
             </div>
+
           </div>
         ))}
       </div>
