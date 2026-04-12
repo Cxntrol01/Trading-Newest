@@ -31,7 +31,6 @@ export default function PriceChart({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
 
-  // Track all series manually
   const candleRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const volumeRef = useRef<ISeriesApi<"Histogram"> | null>(null);
   const smaRef = useRef<ISeriesApi<"Line"> | null>(null);
@@ -50,7 +49,6 @@ export default function PriceChart({
     "5m": "5m",
   };
 
-  // Create chart once
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -89,12 +87,10 @@ export default function PriceChart({
     };
   }, []);
 
-  // Load candles + indicators
   useEffect(() => {
     const chart = chartRef.current;
     if (!chart) return;
 
-    // Remove old series
     [
       candleRef,
       volumeRef,
@@ -112,7 +108,6 @@ export default function PriceChart({
       }
     });
 
-    // Create new series
     candleRef.current = chart.addCandlestickSeries();
 
     volumeRef.current = chart.addHistogramSeries({
@@ -131,7 +126,6 @@ export default function PriceChart({
       .then((data) => {
         candleRef.current?.setData(data);
 
-        // Volume
         const volumeData: HistogramData[] = data.map((c: any) => ({
           time: c.time,
           value: c.volume ?? 0,
@@ -139,9 +133,6 @@ export default function PriceChart({
         }));
         volumeRef.current?.setData(volumeData);
 
-        // --------------------
-        // Bollinger Bands
-        // --------------------
         if (indicators.bb) {
           const bb = calculateBollingerBands(data, 20, 2);
 
@@ -158,9 +149,6 @@ export default function PriceChart({
           bbLowerRef.current.setData(bb.lower);
         }
 
-        // --------------------
-        // VWAP
-        // --------------------
         if (indicators.vwap) {
           vwapRef.current = chart.addLineSeries({
             color: "#a855f7",
@@ -169,9 +157,6 @@ export default function PriceChart({
           vwapRef.current.setData(calculateVWAP(data));
         }
 
-        // --------------------
-        // SMA
-        // --------------------
         if (indicators.sma) {
           smaRef.current = chart.addLineSeries({
             color: "#4ade80",
@@ -180,9 +165,6 @@ export default function PriceChart({
           smaRef.current.setData(calculateSMA(data, 14));
         }
 
-        // --------------------
-        // EMA
-        // --------------------
         if (indicators.ema) {
           emaRef.current = chart.addLineSeries({
             color: "#60a5fa",
@@ -191,9 +173,6 @@ export default function PriceChart({
           emaRef.current.setData(calculateEMA(data, 14));
         }
 
-        // --------------------
-        // RSI
-        // --------------------
         if (indicators.rsi) {
           chart.priceScale("rsi").applyOptions({
             scaleMargins: { top: 0.8, bottom: 0 },
@@ -208,9 +187,6 @@ export default function PriceChart({
           rsiRef.current.setData(calculateRSI(data, 14));
         }
 
-        // --------------------
-        // MACD
-        // --------------------
         if (indicators.macd) {
           chart.priceScale("macd").applyOptions({
             scaleMargins: { top: 0.6, bottom: 0 },
@@ -239,7 +215,7 @@ export default function PriceChart({
 
 function calculateSMA(data: any[], length: number): LineData[] {
   return data.map((c, i) => {
-    if (i < length) return { time: c.time, value: undefined };
+    if (i < length) return { time: c.time, value: NaN };
     const slice = data.slice(i - length, i);
     const avg = slice.reduce((sum: number, x: any) => sum + x.close, 0) / length;
     return { time: c.time, value: avg };
@@ -272,7 +248,7 @@ function calculateRSI(data: any[], length: number): LineData[] {
   let avgLoss = losses / length;
 
   return data.map((c, i) => {
-    if (i < length) return { time: c.time, value: undefined };
+    if (i < length) return { time: c.time, value: NaN };
 
     const diff = data[i].close - data[i - 1].close;
     const gain = diff > 0 ? diff : 0;
@@ -308,8 +284,8 @@ function calculateBollingerBands(
 
   data.forEach((c, i) => {
     if (i < length) {
-      upper.push({ time: c.time, value: undefined });
-      lower.push({ time: c.time, value: undefined });
+      upper.push({ time: c.time, value: NaN });
+      lower.push({ time: c.time, value: NaN });
       return;
     }
 
@@ -345,4 +321,4 @@ function calculateVWAP(data: any[]): LineData[] {
 
     return { time: c.time, value: vwap };
   });
-        }
+                            }
