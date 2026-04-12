@@ -1,16 +1,10 @@
 "use client";
 
-import WaffleMenu from "@/components/WaffleMenu";
 import Link from "next/link";
 
 export default function Home() {
   return (
-    <div className="p-6 flex flex-col gap-10">
-
-      {/* Waffle Menu */}
-      <div>
-        <WaffleMenu />
-      </div>
+    <div className="p-6 flex flex-col gap-12">
 
       {/* Hero Section */}
       <section className="text-center mt-10">
@@ -19,7 +13,7 @@ export default function Home() {
         </h1>
 
         <p className="text-gray-400 text-lg max-w-xl mx-auto">
-          Analyse markets. Build strategies. Trade smarter.  
+          Analyse markets. Build strategies. Trade smarter.
         </p>
 
         <Link
@@ -35,9 +29,10 @@ export default function Home() {
         </Link>
       </section>
 
-      {/* Market Ticker */}
-      <section className="mt-12 border border-gray-800 rounded-lg p-4 bg-gray-900/40 backdrop-blur-sm">
-        <div className="flex justify-between text-gray-300 text-sm">
+      {/* Animated Market Ticker */}
+      <section className="overflow-hidden border border-gray-800 rounded-lg bg-gray-900/40 backdrop-blur-sm py-3">
+        <div className="whitespace-nowrap animate-ticker flex gap-10 px-4 text-sm">
+
           <div className="flex flex-col">
             <span className="font-semibold text-white">S&P 500</span>
             <span className="text-green-400">+0.82%</span>
@@ -62,6 +57,12 @@ export default function Home() {
             <span className="font-semibold text-white">NVDA</span>
             <span className="text-green-400">+2.14%</span>
           </div>
+
+          <div className="flex flex-col">
+            <span className="font-semibold text-white">TSLA</span>
+            <span className="text-red-400">-1.22%</span>
+          </div>
+
         </div>
       </section>
 
