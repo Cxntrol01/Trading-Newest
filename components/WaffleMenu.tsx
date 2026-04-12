@@ -50,7 +50,7 @@ export default function WaffleMenu() {
             bg-black/95 backdrop-blur-xl 
             border border-gray-700 rounded-2xl 
             shadow-2xl p-5 z-[99999]
-            ${isClosing ? "animate-slideUp" : "animate-slideDown"}
+            ${isClosing ? "animate-slideUpMenu" : "animate-slideDownMenu"}
           `}
         >
           <div className="grid grid-cols-1 gap-4 text-sm">
