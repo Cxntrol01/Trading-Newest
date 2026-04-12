@@ -59,7 +59,8 @@ export default function MultiChart() {
             key={i}
             className="border border-gray-800 rounded-lg bg-gray-900/40 h-[400px] overflow-hidden"
           >
-            <PriceChart />
+            {/* FIX: PriceChart now receives a required symbol */}
+            <PriceChart symbol="AAPL" />
           </div>
         ))}
       </div>
