@@ -2,8 +2,11 @@
 
 import Link from "next/link";
 import NewsFeed from "@/components/NewsFeed";
+import { useWatchlist } from "@/hooks/useWatchlist";
 
 export default function Home() {
+  const { items, loaded } = useWatchlist();
+
   return (
     <div className="p-6 flex flex-col gap-16">
 
@@ -91,31 +94,31 @@ export default function Home() {
         </Link>
       </section>
 
-      {/* Watchlist Preview */}
+      {/* Watchlist Preview (Dynamic) */}
       <section className="border border-gray-800 rounded-lg p-6 bg-gray-900/40 backdrop-blur-md shadow-lg">
         <h2 className="text-xl font-semibold mb-4">Your Watchlist</h2>
 
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div className="p-3 bg-gray-800/50 rounded-lg">
-            <div className="font-semibold">AAPL</div>
-            <div className="text-green-400">+0.56%</div>
+        {!loaded ? (
+          <p className="text-gray-500 text-sm">Loading watchlist…</p>
+        ) : items.length === 0 ? (
+          <p className="text-gray-500 text-sm">
+            No tickers yet. Add them on the Watchlist page.
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            {items.map((item) => (
+              <div
+                key={item.symbol}
+                className="p-3 bg-gray-800/50 rounded-lg"
+              >
+                <div className="font-semibold">{item.symbol}</div>
+                <div className="text-gray-400 text-xs">
+                  % change coming soon…
+                </div>
+              </div>
+            ))}
           </div>
-
-          <div className="p-3 bg-gray-800/50 rounded-lg">
-            <div className="font-semibold">NVDA</div>
-            <div className="text-green-400">+2.14%</div>
-          </div>
-
-          <div className="p-3 bg-gray-800/50 rounded-lg">
-            <div className="font-semibold">TSLA</div>
-            <div className="text-red-400">-1.22%</div>
-          </div>
-
-          <div className="p-3 bg-gray-800/50 rounded-lg">
-            <div className="font-semibold">MSFT</div>
-            <div className="text-green-400">+0.91%</div>
-          </div>
-        </div>
+        )}
       </section>
 
       {/* LIVE Market-Moving News */}
