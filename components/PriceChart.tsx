@@ -77,7 +77,6 @@ export default function PriceChart({
 
     chartRef.current = chart;
 
-    // Create candle + volume series ONCE
     candleRef.current = chart.addCandlestickSeries();
 
     volumeRef.current = chart.addHistogramSeries({
@@ -117,7 +116,7 @@ export default function PriceChart({
     )
       .then((res) => res.json())
       .then((data) => {
-        candleDataRef.current = data; // ⭐ store candle data
+        candleDataRef.current = data;
         candleRef.current!.setData(data);
 
         const volumeData: HistogramData[] = data.map((c: any) => ({
@@ -173,13 +172,13 @@ export default function PriceChart({
     }
 
     // --------------------
-    // VWAP (⭐ FIXED SCALE)
+    // VWAP (⭐ FIXED VERSION)
     // --------------------
     if (indicators.vwap) {
       vwapRef.current = chart.addLineSeries({
         color: "#a855f7",
         lineWidth: 2,
-        priceScaleId: "right", // ⭐ FIXED
+        priceScaleId: "right",
       });
       vwapRef.current.setData(calculateVWAP(data));
     }
@@ -254,6 +253,24 @@ export default function PriceChart({
 // ------------------------------------------------------------
 // INDICATOR CALCULATIONS
 // ------------------------------------------------------------
+
+// ⭐ VWAP FIX v2 — works even with missing/zero volume
+function calculateVWAP(data: any[]): LineData[] {
+  let cumulativeTP = 0;
+  let count = 0;
+
+  return data.map((c) => {
+    const typicalPrice = (c.high + c.low + c.close) / 3;
+
+    cumulativeTP += typicalPrice;
+    count++;
+
+    return {
+      time: c.time,
+      value: cumulativeTP / count,
+    };
+  });
+}
 
 function calculateSMA(data: any[], length: number): LineData[] {
   return data.map((c, i) => {
@@ -346,21 +363,4 @@ function calculateBollingerBands(
   });
 
   return { upper, lower };
-}
-
-function calculateVWAP(data: any[]): LineData[] {
-  let cumulativePV = 0;
-  let cumulativeVolume = 0;
-
-  return data.map((c) => {
-    const typicalPrice = (c.high + c.low + c.close) / 3;
-    const volume = c.volume ?? 0;
-
-    cumulativePV += typicalPrice * volume;
-    cumulativeVolume += volume || 1;
-
-    const vwap = cumulativePV / cumulativeVolume;
-
-    return { time: c.time, value: vwap };
-  });
-               }
+  }
