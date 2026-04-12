@@ -91,33 +91,30 @@ export default function PriceChart({
     const chart = chartRef.current;
     if (!chart) return;
 
-    [
-      candleRef,
-      volumeRef,
-      smaRef,
-      emaRef,
-      rsiRef,
-      macdRef,
-      bbUpperRef,
-      bbLowerRef,
-      vwapRef,
-    ].forEach((ref) => {
-      if (ref.current) {
-        chart.removeSeries(ref.current);
-        ref.current = null;
+    // Remove ONLY indicator series (not candles or volume)
+    [smaRef, emaRef, rsiRef, macdRef, bbUpperRef, bbLowerRef, vwapRef].forEach(
+      (ref) => {
+        if (ref.current) {
+          chart.removeSeries(ref.current);
+          ref.current = null;
+        }
       }
-    });
+    );
 
-    candleRef.current = chart.addCandlestickSeries();
+    // Candle + volume series stay persistent
+    if (!candleRef.current) {
+      candleRef.current = chart.addCandlestickSeries();
+    }
+    if (!volumeRef.current) {
+      volumeRef.current = chart.addHistogramSeries({
+        priceFormat: { type: "volume" },
+        priceScaleId: "volume",
+      });
 
-    volumeRef.current = chart.addHistogramSeries({
-      priceFormat: { type: "volume" },
-      priceScaleId: "volume",
-    });
-
-    chart.priceScale("volume").applyOptions({
-      scaleMargins: { top: 0.8, bottom: 0 },
-    });
+      chart.priceScale("volume").applyOptions({
+        scaleMargins: { top: 0.8, bottom: 0 },
+      });
+    }
 
     fetch(
       `/api/candles?symbol=${symbol}&interval=${intervalMap[timeframe]}&range=1mo`
@@ -201,7 +198,7 @@ export default function PriceChart({
           macdRef.current.setData(calculateMACD(data));
         }
       });
-  }, [symbol, timeframe, indicators]);
+  }, [symbol, timeframe, JSON.stringify(indicators)]); // ⭐ FIXED HERE
 
   return (
     <div
@@ -321,4 +318,4 @@ function calculateVWAP(data: any[]): LineData[] {
 
     return { time: c.time, value: vwap };
   });
-                            }
+      }
