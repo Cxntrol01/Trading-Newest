@@ -9,6 +9,7 @@ type Indicators = {
   macd: boolean;
   vwap: boolean;
   bb: boolean;
+  volume: boolean;   // ⭐ NEW
 };
 
 type IndicatorKey = keyof Indicators;
@@ -42,6 +43,10 @@ export default function IndicatorToggles({
       title: "Volatility",
       items: [{ key: "bb", label: "Bollinger Bands" }],
     },
+    {
+      title: "Volume",
+      items: [{ key: "volume", label: "Volume" }], // ⭐ NEW
+    },
   ];
 
   return (
@@ -55,7 +60,6 @@ export default function IndicatorToggles({
               key={ind.key}
               className="flex items-center justify-between px-2 py-1 hover:bg-gray-800 rounded"
             >
-              {/* Checkbox + Label */}
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
@@ -65,7 +69,6 @@ export default function IndicatorToggles({
                 {ind.label}
               </label>
 
-              {/* Settings Button */}
               <button
                 onClick={() => onOpenSettings(ind.key as IndicatorKey)}
                 className="text-gray-400 hover:text-white"
