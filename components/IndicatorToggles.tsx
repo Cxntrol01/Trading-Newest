@@ -1,7 +1,5 @@
 "use client";
 
-import React from "react";
-
 type Indicators = {
   sma: boolean;
   ema: boolean;
@@ -9,7 +7,8 @@ type Indicators = {
   macd: boolean;
   vwap: boolean;
   bb: boolean;
-  volume: boolean;   // ⭐ NEW
+  volume: boolean;
+  volumeMA: boolean; // ⭐ NEW
 };
 
 type IndicatorKey = keyof Indicators;
@@ -45,7 +44,10 @@ export default function IndicatorToggles({
     },
     {
       title: "Volume",
-      items: [{ key: "volume", label: "Volume" }], // ⭐ NEW
+      items: [
+        { key: "volume", label: "Volume" },
+        { key: "volumeMA", label: "Volume MA" }, // ⭐ NEW
+      ],
     },
   ];
 
