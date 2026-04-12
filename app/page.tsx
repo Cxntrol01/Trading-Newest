@@ -14,7 +14,8 @@ type Indicators = {
   macd: boolean;
   vwap: boolean;
   bb: boolean;
-  volume: boolean; // ⭐ NEW
+  volume: boolean;
+  volumeMA: boolean; // ⭐ NEW
 };
 
 type IndicatorKey = keyof Indicators;
@@ -29,7 +30,8 @@ export default function HomePage() {
     macd: false,
     vwap: false,
     bb: false,
-    volume: true, // ⭐ DEFAULT ON
+    volume: true,
+    volumeMA: false, // ⭐ NEW
   });
 
   const [indicatorSettings, setIndicatorSettings] = useState(
