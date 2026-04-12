@@ -17,7 +17,8 @@ type Indicators = {
   macd: boolean;
   vwap: boolean;
   bb: boolean;
-  volume: boolean; // ⭐ NEW
+  volume: boolean;
+  volumeMA: boolean; // ⭐ NEW
 };
 
 export default function PriceChart({
@@ -36,6 +37,7 @@ export default function PriceChart({
 
   const candleRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const volumeRef = useRef<ISeriesApi<"Histogram"> | null>(null);
+  const volumeMARef = useRef<ISeriesApi<"Line"> | null>(null); // ⭐ NEW
 
   const smaRef = useRef<ISeriesApi<"Line"> | null>(null);
   const emaRef = useRef<ISeriesApi<"Line"> | null>(null);
@@ -76,7 +78,7 @@ export default function PriceChart({
 
     candleRef.current = chart.addCandlestickSeries();
 
-    // ⭐ Volume series created here (may be removed later)
+    // ⭐ Volume series
     volumeRef.current = chart.addHistogramSeries({
       priceFormat: { type: "volume" },
       priceScaleId: "volume",
@@ -162,6 +164,7 @@ export default function PriceChart({
       bbUpperRef,
       bbLowerRef,
       vwapRef,
+      volumeMARef, // ⭐ NEW
     ].forEach((ref) => {
       if (ref.current) {
         chart.removeSeries(ref.current);
@@ -197,6 +200,22 @@ export default function PriceChart({
       }));
 
       volumeRef.current.setData(volumeData);
+    }
+
+    // --------------------
+    // ⭐ VOLUME MA
+    // --------------------
+    if (indicators.volumeMA) {
+      const { length, color, width } = indicatorSettings.volumeMA;
+
+      volumeMARef.current = chart.addLineSeries({
+        color,
+        lineWidth: width,
+        priceScaleId: "volume",
+      });
+
+      const maData = calculateVolumeMA(data, length);
+      volumeMARef.current.setData(maData);
     }
 
     // --------------------
@@ -317,6 +336,18 @@ export default function PriceChart({
 // INDICATOR CALCULATIONS
 // ------------------------------------------------------------
 
+function calculateVolumeMA(data: any[], length: number): LineData[] {
+  return data.map((c, i) => {
+    if (i < length) return { time: c.time, value: NaN };
+
+    const slice = data.slice(i - length, i);
+    const avg =
+      slice.reduce((sum, x) => sum + (x.volume ?? 0), 0) / length;
+
+    return { time: c.time, value: avg };
+  });
+}
+
 function calculateSMA(data: any[], length: number): LineData[] {
   return data.map((c, i) => {
     if (i < length) return { time: c.time, value: NaN };
@@ -419,7 +450,6 @@ function calculateBollingerBands(
   return { upper, lower };
 }
 
-// ⭐ FINAL VWAP FIX — CLAMP TO PRICE RANGE
 function calculateVWAP(data: any[]): LineData[] {
   let cumulativeTP = 0;
   let count = 0;
@@ -440,4 +470,4 @@ function calculateVWAP(data: any[]): LineData[] {
 
     return { time: c.time, value: vwap };
   });
-            }
+      }
