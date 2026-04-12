@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import PriceChart from "@/components/PriceChart";
 import SymbolSearch from "@/components/SymbolSearch";
 import IndicatorSettingsPanel from "@/components/IndicatorSettingsPanel";
@@ -15,7 +15,7 @@ type Indicators = {
   vwap: boolean;
   bb: boolean;
   volume: boolean;
-  volumeMA: boolean; // ⭐ NEW
+  volumeMA: boolean;
 };
 
 type ChartConfig = {
@@ -30,6 +30,8 @@ type IndicatorKey = keyof Indicators;
 export default function ChartGrid() {
   const [layout, setLayout] = useState(1);
 
+  const indicatorMenuRef = useRef<HTMLDetailsElement | null>(null); // ⭐ NEW
+
   const [charts, setCharts] = useState<ChartConfig[]>([
     {
       symbol: "AAPL",
@@ -42,7 +44,7 @@ export default function ChartGrid() {
         vwap: false,
         bb: false,
         volume: true,
-        volumeMA: false, // ⭐ NEW
+        volumeMA: false,
       },
       indicatorSettings: JSON.parse(JSON.stringify(defaultIndicatorSettings)),
     },
@@ -186,7 +188,7 @@ export default function ChartGrid() {
 
             <div className="p-2 border-b border-gray-800 bg-gray-800 text-sm relative">
 
-              <details className="group">
+              <details ref={indicatorMenuRef} className="group">
                 <summary className="cursor-pointer px-3 py-1.5 bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 select-none">
                   Indicators ▼
                 </summary>
@@ -195,12 +197,13 @@ export default function ChartGrid() {
                   <IndicatorToggles
                     indicators={chart.indicators}
                     onToggle={(key) => toggleIndicator(i, key)}
-                    onOpenSettings={(key) =>
+                    onOpenSettings={(key) => {
+                      indicatorMenuRef.current?.removeAttribute("open"); // ⭐ FIX
                       setOpenSettings({
                         chartIndex: i,
                         indicator: key,
-                      })
-                    }
+                      });
+                    }}
                   />
                 </div>
               </details>
