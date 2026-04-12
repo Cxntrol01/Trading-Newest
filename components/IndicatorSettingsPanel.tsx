@@ -1,40 +1,62 @@
 "use client";
+
 import React from "react";
 
 export default function IndicatorSettingsPanel({
   indicator,
   settings,
   onChange,
+  onClose,
 }: {
   indicator: string;
   settings: any;
   onChange: (newSettings: any) => void;
+  onClose: () => void;
 }) {
   return (
-    <div className="absolute top-10 right-0 bg-neutral-900 border border-neutral-700 rounded-lg p-4 w-60 z-50">
-      <h3 className="text-white font-semibold mb-3 capitalize">
-        {indicator} Settings
-      </h3>
+    <div className="absolute top-12 right-4 bg-gray-900 border border-gray-700 rounded-lg p-4 w-64 z-50 shadow-xl">
 
-      {Object.keys(settings).map((key) => (
-        <div key={key} className="mb-3">
-          <label className="text-gray-300 text-sm">{key}</label>
-          <input
-            type={typeof settings[key] === "number" ? "number" : "text"}
-            value={settings[key]}
-            onChange={(e) =>
-              onChange({
-                ...settings,
-                [key]:
-                  typeof settings[key] === "number"
-                    ? Number(e.target.value)
-                    : e.target.value,
-              })
-            }
-            className="w-full mt-1 bg-neutral-800 text-white p-2 rounded"
-          />
-        </div>
-      ))}
+      {/* Header */}
+      <div className="flex justify-between items-center mb-3">
+        <h3 className="text-white font-semibold capitalize">
+          {indicator} Settings
+        </h3>
+
+        <button
+          onClick={onClose}
+          className="text-gray-400 hover:text-white text-lg"
+        >
+          ✕
+        </button>
+      </div>
+
+      {/* Dynamic Inputs */}
+      <div className="space-y-3">
+        {Object.keys(settings).map((key) => {
+          const value = settings[key];
+          const isNumber = typeof value === "number";
+
+          return (
+            <div key={key} className="flex flex-col">
+              <label className="text-gray-300 text-sm capitalize mb-1">
+                {key}
+              </label>
+
+              <input
+                type={isNumber ? "number" : "text"}
+                value={value}
+                onChange={(e) =>
+                  onChange({
+                    ...settings,
+                    [key]: isNumber ? Number(e.target.value) : e.target.value,
+                  })
+                }
+                className="bg-gray-800 text-white border border-gray-700 rounded px-2 py-1"
+              />
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
