@@ -10,7 +10,6 @@ export default function PriceChart() {
   useEffect(() => {
     if (!containerRef.current) return;
 
-    // Create chart
     const chart = createChart(containerRef.current, {
       layout: {
         background: { color: "#000000" },
@@ -26,8 +25,8 @@ export default function PriceChart() {
 
     const series = chart.addCandlestickSeries();
 
-    // Load STOCK candles (AAPL, 1h)
-    fetch("/api/candles?symbol=AAPL&interval=60")
+    // AAPL, 1h candles, last 1 month
+    fetch("/api/candles?symbol=AAPL&interval=1h&range=1mo")
       .then((res) => res.json())
       .then((data) => {
         series.setData(data);
@@ -35,7 +34,6 @@ export default function PriceChart() {
 
     chartRef.current = chart;
 
-    // Auto-resize
     const resizeObserver = new ResizeObserver(() => {
       if (containerRef.current && chartRef.current) {
         chartRef.current.applyOptions({
