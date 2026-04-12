@@ -2,11 +2,10 @@
 
 import { useState } from "react";
 import SymbolSearch from "@/components/SymbolSearch";
-import PriceChart from "@/components/PriceChart"; 
-// If your chart component is named differently, tell me and I’ll fix it.
+import PriceChart from "@/components/PriceChart";
 
 export default function HomePage() {
-  const [symbol, setSymbol] = useState("AAPL"); // default symbol
+  const [symbol, setSymbol] = useState("AAPL");
 
   return (
     <div className="min-h-screen bg-black text-white p-4">
@@ -24,7 +23,11 @@ export default function HomePage() {
 
         {/* Chart */}
         <div className="w-full h-[500px] bg-gray-900 rounded-lg overflow-hidden">
-          <PriceChart symbol={symbol} />
+          <PriceChart
+            symbol={symbol}
+            timeframe="1D"
+            indicators={{ sma: false, ema: false, rsi: false, macd: false }}
+          />
         </div>
 
       </div>
