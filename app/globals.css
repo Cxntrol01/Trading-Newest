@@ -2,8 +2,9 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Your existing global styles stay exactly as they are above */
-
+body {
+  @apply bg-black text-white;
+}
 
 /* ----------------------------------------------------------
    ⭐ Animation utilities for Indicator Settings Panel
