@@ -42,6 +42,9 @@ export default function PriceChart({
   const bbLowerRef = useRef<ISeriesApi<"Line"> | null>(null);
   const vwapRef = useRef<ISeriesApi<"Line"> | null>(null);
 
+  // ⭐ Store candle data manually (fixes getData issue)
+  const candleDataRef = useRef<any[]>([]);
+
   const intervalMap: Record<string, string> = {
     "1D": "1d",
     "1H": "1h",
@@ -114,6 +117,9 @@ export default function PriceChart({
     )
       .then((res) => res.json())
       .then((data) => {
+        // ⭐ Store candle data for indicators
+        candleDataRef.current = data;
+
         candleRef.current!.setData(data);
 
         const volumeData: HistogramData[] = data.map((c: any) => ({
@@ -133,6 +139,9 @@ export default function PriceChart({
     if (!chartRef.current) return;
 
     const chart = chartRef.current;
+    const data = candleDataRef.current; // ⭐ Use stored candle data
+
+    if (!data || data.length === 0) return;
 
     // Remove ONLY indicator series
     [smaRef, emaRef, rsiRef, macdRef, bbUpperRef, bbLowerRef, vwapRef].forEach(
@@ -146,11 +155,7 @@ export default function PriceChart({
 
     // Add indicators
     if (indicators.bb) {
-      const bb = calculateBollingerBands(
-        candleRef.current!.getData() as any[],
-        20,
-        2
-      );
+      const bb = calculateBollingerBands(data, 20, 2);
 
       bbUpperRef.current = chart.addLineSeries({
         color: "#f97316",
@@ -170,9 +175,7 @@ export default function PriceChart({
         color: "#a855f7",
         lineWidth: 2,
       });
-      vwapRef.current.setData(
-        calculateVWAP(candleRef.current!.getData() as any[])
-      );
+      vwapRef.current.setData(calculateVWAP(data));
     }
 
     if (indicators.sma) {
@@ -180,9 +183,7 @@ export default function PriceChart({
         color: "#4ade80",
         lineWidth: 2,
       });
-      smaRef.current.setData(
-        calculateSMA(candleRef.current!.getData() as any[], 14)
-      );
+      smaRef.current.setData(calculateSMA(data, 14));
     }
 
     if (indicators.ema) {
@@ -190,9 +191,7 @@ export default function PriceChart({
         color: "#60a5fa",
         lineWidth: 2,
       });
-      emaRef.current.setData(
-        calculateEMA(candleRef.current!.getData() as any[], 14)
-      );
+      emaRef.current.setData(calculateEMA(data, 14));
     }
 
     if (indicators.rsi) {
@@ -206,9 +205,7 @@ export default function PriceChart({
         priceScaleId: "rsi",
       });
 
-      rsiRef.current.setData(
-        calculateRSI(candleRef.current!.getData() as any[], 14)
-      );
+      rsiRef.current.setData(calculateRSI(data, 14));
     }
 
     if (indicators.macd) {
@@ -222,9 +219,7 @@ export default function PriceChart({
         priceScaleId: "macd",
       });
 
-      macdRef.current.setData(
-        calculateMACD(candleRef.current!.getData() as any[])
-      );
+      macdRef.current.setData(calculateMACD(data));
     }
   }, [JSON.stringify(indicators)]);
 
@@ -348,4 +343,4 @@ function calculateVWAP(data: any[]): LineData[] {
 
     return { time: c.time, value: vwap };
   });
-          }
+  }
