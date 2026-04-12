@@ -2,52 +2,80 @@
 
 import React from "react";
 
+type Indicators = {
+  sma: boolean;
+  ema: boolean;
+  rsi: boolean;
+  macd: boolean;
+  vwap: boolean;
+  bb: boolean;
+};
+
+type IndicatorKey = keyof Indicators;
+
 export default function IndicatorToggles({
   indicators,
   onToggle,
   onOpenSettings,
 }: {
-  indicators: Record<string, boolean>;
-  onToggle: (key: string) => void;
-  onOpenSettings: (key: string) => void;
+  indicators: Indicators;
+  onToggle: (key: IndicatorKey) => void;
+  onOpenSettings: (key: IndicatorKey) => void;
 }) {
-  const items = [
-    { key: "sma", label: "SMA" },
-    { key: "ema", label: "EMA" },
-    { key: "rsi", label: "RSI" },
-    { key: "macd", label: "MACD" },
-    { key: "vwap", label: "VWAP" },
-    { key: "bb", label: "BB" },
+  const groups = [
+    {
+      title: "Trend",
+      items: [
+        { key: "sma", label: "SMA" },
+        { key: "ema", label: "EMA" },
+        { key: "vwap", label: "VWAP" },
+      ],
+    },
+    {
+      title: "Oscillators",
+      items: [
+        { key: "rsi", label: "RSI" },
+        { key: "macd", label: "MACD" },
+      ],
+    },
+    {
+      title: "Volatility",
+      items: [{ key: "bb", label: "Bollinger Bands" }],
+    },
   ];
 
   return (
-    <div className="bg-neutral-900 border border-neutral-700 rounded-lg p-3 w-full">
-      <h2 className="text-white font-semibold mb-3">Indicators</h2>
+    <div className="space-y-3">
+      {groups.map((group) => (
+        <div key={group.title}>
+          <div className="text-gray-400 text-xs mb-1">{group.title}</div>
 
-      <div className="flex flex-col gap-2">
-        {items.map((ind) => (
-          <div
-            key={ind.key}
-            className="flex items-center justify-between bg-neutral-800 px-3 py-2 rounded"
-          >
-            <label className="flex items-center gap-2 text-gray-200 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={indicators[ind.key]}
-                onChange={() => onToggle(ind.key)}
-              />
-              {ind.label}
-            </label>
-
-            <button
-              onClick={() => onOpenSettings(ind.key)}
-              className="text-gray-400 hover:text-white text-lg"
+          {group.items.map((ind) => (
+            <div
+              key={ind.key}
+              className="flex items-center justify-between px-2 py-1 hover:bg-gray-800 rounded"
             >
-              ⚙️
-            </button>
-          </div>
-        ))}
-      </div>
+              {/* Checkbox + Label */}
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={indicators[ind.key as IndicatorKey]}
+                  onChange={() => onToggle(ind.key as IndicatorKey)}
+                />
+                {ind.label}
+              </label>
+
+              {/* Settings Button */}
+              <button
+                onClick={() => onOpenSettings(ind.key as IndicatorKey)}
+                className="text-gray-400 hover:text-white"
+              >
+                ⚙️
+              </button>
+            </div>
+          ))}
+        </div>
+      ))}
     </div>
   );
 }
