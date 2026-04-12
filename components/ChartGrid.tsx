@@ -14,7 +14,8 @@ type Indicators = {
   macd: boolean;
   vwap: boolean;
   bb: boolean;
-  volume: boolean;   // ⭐ NEW
+  volume: boolean;
+  volumeMA: boolean; // ⭐ NEW
 };
 
 type ChartConfig = {
@@ -40,7 +41,8 @@ export default function ChartGrid() {
         macd: false,
         vwap: false,
         bb: false,
-        volume: true,   // ⭐ DEFAULT ON
+        volume: true,
+        volumeMA: false, // ⭐ NEW
       },
       indicatorSettings: JSON.parse(JSON.stringify(defaultIndicatorSettings)),
     },
@@ -51,9 +53,6 @@ export default function ChartGrid() {
     indicator: IndicatorKey;
   } | null>(null);
 
-  // -----------------------------
-  // Layout update
-  // -----------------------------
   const updateLayout = (count: number) => {
     setLayout(count);
 
@@ -72,6 +71,7 @@ export default function ChartGrid() {
             vwap: false,
             bb: false,
             volume: true,
+            volumeMA: false,
           },
           indicatorSettings: JSON.parse(
             JSON.stringify(defaultIndicatorSettings)
@@ -83,9 +83,6 @@ export default function ChartGrid() {
     });
   };
 
-  // -----------------------------
-  // Symbol update
-  // -----------------------------
   const updateSymbol = (index: number, symbol: string) => {
     setCharts((prev) => {
       const updated = [...prev];
@@ -94,9 +91,6 @@ export default function ChartGrid() {
     });
   };
 
-  // -----------------------------
-  // Timeframe update
-  // -----------------------------
   const updateTimeframe = (index: number, timeframe: string) => {
     setCharts((prev) => {
       const updated = [...prev];
@@ -105,9 +99,6 @@ export default function ChartGrid() {
     });
   };
 
-  // -----------------------------
-  // Toggle indicator
-  // -----------------------------
   const toggleIndicator = (index: number, key: IndicatorKey) => {
     setCharts((prev) => {
       const updated = [...prev];
@@ -116,9 +107,6 @@ export default function ChartGrid() {
     });
   };
 
-  // -----------------------------
-  // Update indicator settings
-  // -----------------------------
   const updateIndicatorSettings = (
     chartIndex: number,
     indicator: IndicatorKey,
@@ -134,7 +122,6 @@ export default function ChartGrid() {
   return (
     <div className="flex flex-col gap-4">
 
-      {/* Layout buttons */}
       <div className="flex items-center gap-3">
         {[1, 2, 4].map((n) => (
           <button
@@ -151,7 +138,6 @@ export default function ChartGrid() {
         ))}
       </div>
 
-      {/* Chart Grid */}
       <div
         className={`grid gap-6 ${
           layout === 1 ? "grid-cols-1" : "grid-cols-2"
@@ -163,7 +149,6 @@ export default function ChartGrid() {
             className="border border-gray-800 rounded-lg bg-gray-900/40 h-[500px] overflow-hidden flex flex-col relative"
           >
 
-            {/* Settings Panel */}
             {openSettings && openSettings.chartIndex === i && (
               <IndicatorSettingsPanel
                 indicator={openSettings.indicator}
@@ -181,7 +166,6 @@ export default function ChartGrid() {
               />
             )}
 
-            {/* Per-chart controls */}
             <div className="p-2 border-b border-gray-800 bg-gray-900 flex items-center gap-3">
               <div className="flex-1">
                 <SymbolSearch onSelect={(s) => updateSymbol(i, s)} />
@@ -200,8 +184,7 @@ export default function ChartGrid() {
               </select>
             </div>
 
-            {/* Indicators dropdown */}
-            <div className="p-2 border-b border-gray-800 bg-gray-800 flex items-center text-sm relative">
+            <div className="p-2 border-b border-gray-800 bg-gray-800 text-sm relative">
 
               <details className="group">
                 <summary className="cursor-pointer px-3 py-1.5 bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 select-none">
@@ -224,7 +207,6 @@ export default function ChartGrid() {
 
             </div>
 
-            {/* Chart */}
             <div className="flex-1">
               <PriceChart
                 symbol={chart.symbol}
@@ -239,4 +221,4 @@ export default function ChartGrid() {
       </div>
     </div>
   );
-            }
+}
