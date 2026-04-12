@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { createChart, IChartApi } from "lightweight-charts";
 
-export default function PriceChart() {
+export default function PriceChart({ symbol }: { symbol: string }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
 
@@ -25,8 +25,7 @@ export default function PriceChart() {
 
     const series = chart.addCandlestickSeries();
 
-    // AAPL, 1h candles, last 1 month
-    fetch("/api/candles?symbol=AAPL&interval=1h&range=1mo")
+    fetch(`/api/candles?symbol=${symbol}&interval=1h&range=1mo`)
       .then((res) => res.json())
       .then((data) => {
         series.setData(data);
@@ -49,7 +48,7 @@ export default function PriceChart() {
       resizeObserver.disconnect();
       chart.remove();
     };
-  }, []);
+  }, [symbol]);
 
   return (
     <div
