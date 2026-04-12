@@ -21,7 +21,7 @@ body {
     animation: fadeIn 0.25s ease-out forwards;
   }
 
-  /* Slide-up modal animation */
+  /* Slide-up modal animation (your original one) */
   @keyframes slideUp {
     from { opacity: 0; transform: translateY(20px) }
     to { opacity: 1; transform: translateY(0) }
@@ -39,5 +39,41 @@ body {
 
   .animate-ticker {
     animation: tickerScroll 18s linear infinite;
+  }
+
+  /* ----------------------------------------------------------
+     ⭐ Waffle Menu Animations (NEW)
+     ---------------------------------------------------------- */
+
+  /* Slide-down for waffle menu */
+  @keyframes slideDownMenu {
+    from {
+      opacity: 0;
+      transform: translateY(-12px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-slideDownMenu {
+    animation: slideDownMenu 0.25s ease-out forwards;
+  }
+
+  /* Slide-up for waffle menu */
+  @keyframes slideUpMenu {
+    from {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(-12px);
+    }
+  }
+
+  .animate-slideUpMenu {
+    animation: slideUpMenu 0.25s ease-in forwards;
   }
 }
