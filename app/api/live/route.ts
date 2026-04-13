@@ -1,9 +1,7 @@
 /* app/api/live/route.ts */
 import type { NextRequest } from "next/server";
 
-export const config = {
-  runtime: "edge",
-};
+export const runtime = "edge"; // ⭐ FIXED — no more deprecated config
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -16,7 +14,7 @@ export async function GET(req: NextRequest) {
 
   server.accept();
 
-  // Simple in‑memory price state (random walk demo)
+  // Simple synthetic price generator (replace later with real feed)
   let lastPrice = 100 + Math.random() * 20;
   let lastVolume = 1_000_000;
 
@@ -28,7 +26,10 @@ export async function GET(req: NextRequest) {
     const close = Math.max(1, lastPrice + delta);
     const high = Math.max(open, close) + Math.random() * 0.3;
     const low = Math.min(open, close) - Math.random() * 0.3;
-    const volume = Math.max(1, lastVolume + Math.floor((Math.random() - 0.5) * 50_000));
+    const volume = Math.max(
+      1,
+      lastVolume + Math.floor((Math.random() - 0.5) * 50_000)
+    );
 
     lastPrice = close;
     lastVolume = volume;
