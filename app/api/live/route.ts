@@ -1,20 +1,17 @@
-/* app/api/live/route.ts */
-import type { NextRequest } from "next/server";
+// app/api/live/route.ts
+import { NextRequest } from "next/server";
 
-export const runtime = "edge"; // ⭐ FIXED — no more deprecated config
+export const runtime = "edge";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const symbol = searchParams.get("symbol") || "AAPL";
   const interval = searchParams.get("interval") || "1m";
 
-  const pair = new WebSocketPair();
-  const client = pair[0];
-  const server = pair[1];
+  // Upgrade the request to a WebSocket
+  const { socket, response } = Deno.upgradeWebSocket(req);
 
-  server.accept();
-
-  // Simple synthetic price generator (replace later with real feed)
+  // Synthetic price generator
   let lastPrice = 100 + Math.random() * 20;
   let lastVolume = 1_000_000;
 
@@ -46,30 +43,24 @@ export async function GET(req: NextRequest) {
     };
 
     try {
-      server.send(JSON.stringify(tick));
+      socket.send(JSON.stringify(tick));
     } catch {
       clearInterval(intervalId);
       try {
-        server.close();
+        socket.close();
       } catch {}
     }
   };
 
   const intervalId = setInterval(sendTick, 1000);
 
-  server.addEventListener("close", () => {
-    clearInterval(intervalId);
-  });
-
-  server.addEventListener("error", () => {
+  socket.onclose = () => clearInterval(intervalId);
+  socket.onerror = () => {
     clearInterval(intervalId);
     try {
-      server.close();
+      socket.close();
     } catch {}
-  });
+  };
 
-  return new Response(null, {
-    status: 101,
-    webSocket: client,
-  } as any);
+  return response;
 }
