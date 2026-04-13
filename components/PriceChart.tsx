@@ -18,7 +18,7 @@ type Indicators = {
   vwap: boolean;
   bb: boolean;
   volume: boolean;
-  volumeMA: boolean; // ⭐ NEW
+  volumeMA: boolean;
 };
 
 export default function PriceChart({
@@ -37,7 +37,7 @@ export default function PriceChart({
 
   const candleRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const volumeRef = useRef<ISeriesApi<"Histogram"> | null>(null);
-  const volumeMARef = useRef<ISeriesApi<"Line"> | null>(null); // ⭐ NEW
+  const volumeMARef = useRef<ISeriesApi<"Line"> | null>(null);
 
   const smaRef = useRef<ISeriesApi<"Line"> | null>(null);
   const emaRef = useRef<ISeriesApi<"Line"> | null>(null);
@@ -78,7 +78,6 @@ export default function PriceChart({
 
     candleRef.current = chart.addCandlestickSeries();
 
-    // ⭐ Volume series
     volumeRef.current = chart.addHistogramSeries({
       priceFormat: { type: "volume" },
       priceScaleId: "volume",
@@ -106,7 +105,7 @@ export default function PriceChart({
   }, []);
 
   // ------------------------------------------------------------
-  // FETCH CANDLES
+  // FETCH HISTORICAL CANDLES
   // ------------------------------------------------------------
   useEffect(() => {
     if (!chartRef.current || !candleRef.current) return;
@@ -128,7 +127,6 @@ export default function PriceChart({
         candleDataRef.current = data;
         candleRef.current!.setData(data);
 
-        // ⭐ Volume data
         const volumeData: HistogramData[] = data.map((c: any) => ({
           time: c.time,
           value: c.volume,
@@ -145,7 +143,50 @@ export default function PriceChart({
   }, [symbol, timeframe]);
 
   // ------------------------------------------------------------
-  // UPDATE INDICATORS
+  // ⭐ LIVE WEBSOCKET UPDATES
+  // ------------------------------------------------------------
+  useEffect(() => {
+    if (!candleRef.current) return;
+
+    const ws = new WebSocket(
+      `wss://ojects.vercel.app/api/live?symbol=${symbol}&interval=${intervalMap[timeframe]}`
+    );
+
+    ws.onmessage = (event) => {
+      const tick = JSON.parse(event.data);
+
+      const update = {
+        time: tick.time,
+        open: tick.open,
+        high: tick.high,
+        low: tick.low,
+        close: tick.close,
+      };
+
+      candleRef.current!.update(update);
+
+      if (volumeRef.current) {
+        volumeRef.current.update({
+          time: tick.time,
+          value: tick.volume ?? 1,
+          color:
+            tick.close >= tick.open
+              ? indicatorSettings.volume.colorUp
+              : indicatorSettings.volume.colorDown,
+        });
+      }
+
+      candleDataRef.current = [
+        ...candleDataRef.current.filter((c) => c.time !== tick.time),
+        { ...update, volume: tick.volume ?? 1 },
+      ];
+    };
+
+    return () => ws.close();
+  }, [symbol, timeframe]);
+
+  // ------------------------------------------------------------
+  // INDICATORS
   // ------------------------------------------------------------
   useEffect(() => {
     if (!chartRef.current) return;
@@ -155,7 +196,6 @@ export default function PriceChart({
 
     if (!data.length) return;
 
-    // Remove old indicator series
     [
       smaRef,
       emaRef,
@@ -164,7 +204,7 @@ export default function PriceChart({
       bbUpperRef,
       bbLowerRef,
       vwapRef,
-      volumeMARef, // ⭐ NEW
+      volumeMARef,
     ].forEach((ref) => {
       if (ref.current) {
         chart.removeSeries(ref.current);
@@ -172,9 +212,7 @@ export default function PriceChart({
       }
     });
 
-    // --------------------
-    // ⭐ VOLUME TOGGLE
-    // --------------------
+    // Volume toggle
     if (!indicators.volume && volumeRef.current) {
       chart.removeSeries(volumeRef.current);
       volumeRef.current = null;
@@ -202,9 +240,7 @@ export default function PriceChart({
       volumeRef.current.setData(volumeData);
     }
 
-    // --------------------
-    // ⭐ VOLUME MA
-    // --------------------
+    // Volume MA
     if (indicators.volumeMA) {
       const { length, color, width } = indicatorSettings.volumeMA;
 
@@ -218,9 +254,7 @@ export default function PriceChart({
       volumeMARef.current.setData(maData);
     }
 
-    // --------------------
     // Bollinger Bands
-    // --------------------
     if (indicators.bb) {
       const { length, mult, color } = indicatorSettings.bb;
       const bb = calculateBollingerBands(data, length, mult);
@@ -240,9 +274,7 @@ export default function PriceChart({
       bbLowerRef.current.setData(bb.lower);
     }
 
-    // --------------------
     // VWAP
-    // --------------------
     if (indicators.vwap) {
       const { color, width } = indicatorSettings.vwap;
 
@@ -255,9 +287,7 @@ export default function PriceChart({
       vwapRef.current.setData(calculateVWAP(data));
     }
 
-    // --------------------
     // SMA
-    // --------------------
     if (indicators.sma) {
       const { length, color, width } = indicatorSettings.sma;
 
@@ -270,9 +300,7 @@ export default function PriceChart({
       smaRef.current.setData(calculateSMA(data, length));
     }
 
-    // --------------------
     // EMA
-    // --------------------
     if (indicators.ema) {
       const { length, color, width } = indicatorSettings.ema;
 
@@ -285,9 +313,7 @@ export default function PriceChart({
       emaRef.current.setData(calculateEMA(data, length));
     }
 
-    // --------------------
     // RSI
-    // --------------------
     if (indicators.rsi) {
       const { length, color } = indicatorSettings.rsi;
 
@@ -304,9 +330,7 @@ export default function PriceChart({
       rsiRef.current.setData(calculateRSI(data, length));
     }
 
-    // --------------------
     // MACD
-    // --------------------
     if (indicators.macd) {
       const { fast, slow, signal, color } = indicatorSettings.macd;
 
@@ -470,4 +494,4 @@ function calculateVWAP(data: any[]): LineData[] {
 
     return { time: c.time, value: vwap };
   });
-      }
+  }
