@@ -36,7 +36,7 @@ export default function ChartWorkspace() {
       {/* ─────────────────────────────────────────────── */}
       {/* TOP BAR */}
       {/* ─────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800 bg-black">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800 bg-black z-20">
         <div className="flex items-center gap-3">
           <input
             value={symbol}
@@ -105,9 +105,9 @@ export default function ChartWorkspace() {
       </div>
 
       {/* ─────────────────────────────────────────────── */}
-      {/* CHART AREA */}
+      {/* CHART AREA — FIXED HEIGHT, DROPDOWN SAFE */}
       {/* ─────────────────────────────────────────────── */}
-      <div className="flex-1 min-h-[300px]">
+      <div className="flex-1 min-h-[300px] relative overflow-hidden">
         <PriceChart
           symbol={symbol}
           timeframe={timeframe}
@@ -117,9 +117,9 @@ export default function ChartWorkspace() {
       </div>
 
       {/* ─────────────────────────────────────────────── */}
-      {/* ORDER BOOK (NEW) */}
+      {/* ORDER BOOK — DOES NOT SHRINK CHART */}
       {/* ─────────────────────────────────────────────── */}
-      <div className="h-[260px] overflow-y-auto border-t border-gray-800">
+      <div className="h-[260px] overflow-y-auto border-t border-gray-800 shrink-0">
         <OrderBook symbol={symbol} />
       </div>
     </div>
