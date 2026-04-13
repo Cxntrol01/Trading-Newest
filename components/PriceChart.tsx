@@ -116,7 +116,7 @@ export default function PriceChart({
       .then((res) => res.json())
       .then((raw) => {
         const data = raw.map((c: any) => ({
-          time: c.time,
+          time: c.time as any,
           open: Number(c.open ?? c.close ?? 0),
           high: Number(c.high ?? c.close ?? 0),
           low: Number(c.low ?? c.close ?? 0),
@@ -128,7 +128,7 @@ export default function PriceChart({
         candleRef.current!.setData(data);
 
         const volumeData: HistogramData[] = data.map((c: any) => ({
-          time: c.time,
+          time: c.time as any,
           value: c.volume,
           color:
             c.close >= c.open
@@ -175,7 +175,7 @@ export default function PriceChart({
 
       if (last && last.time === time) {
         update = {
-          time,
+          time: time as any,
           open: last.open,
           high: Math.max(last.high, price),
           low: Math.min(last.low, price),
@@ -185,7 +185,7 @@ export default function PriceChart({
         candleDataRef.current[candleDataRef.current.length - 1] = update;
       } else {
         update = {
-          time,
+          time: time as any,
           open: price,
           high: price,
           low: price,
@@ -199,7 +199,7 @@ export default function PriceChart({
 
       if (volumeRef.current) {
         volumeRef.current.update({
-          time,
+          time: time as any,
           value: update.volume,
           color:
             update.close >= update.open
@@ -261,7 +261,7 @@ export default function PriceChart({
       });
 
       const volumeData = data.map((c: any) => ({
-        time: c.time,
+        time: c.time as any,
         value: c.volume,
         color:
           c.close >= c.open
@@ -394,22 +394,22 @@ export default function PriceChart({
 
 function calculateVolumeMA(data: any[], length: number): LineData[] {
   return data.map((c, i) => {
-    if (i < length) return { time: c.time, value: NaN };
+    if (i < length) return { time: c.time as any, value: NaN };
 
     const slice = data.slice(i - length, i);
     const avg =
       slice.reduce((sum, x) => sum + (x.volume ?? 0), 0) / length;
 
-    return { time: c.time, value: avg };
+    return { time: c.time as any, value: avg };
   });
 }
 
 function calculateSMA(data: any[], length: number): LineData[] {
   return data.map((c, i) => {
-    if (i < length) return { time: c.time, value: NaN };
+    if (i < length) return { time: c.time as any, value: NaN };
     const slice = data.slice(i - length, i);
     const avg = slice.reduce((sum, x) => sum + x.close, 0) / length;
-    return { time: c.time, value: avg };
+    return { time: c.time as any, value: avg };
   });
 }
 
@@ -418,10 +418,10 @@ function calculateEMA(data: any[], length: number): LineData[] {
   const k = 2 / (length + 1);
 
   return data.map((c, i) => {
-    if (i === 0) return { time: c.time, value: emaPrev };
+    if (i === 0) return { time: c.time as any, value: emaPrev };
     const ema = c.close * k + emaPrev * (1 - k);
     emaPrev = ema;
-    return { time: c.time, value: ema };
+    return { time: c.time as any, value: ema };
   });
 }
 
@@ -439,7 +439,7 @@ function calculateRSI(data: any[], length: number): LineData[] {
   let avgLoss = losses / length;
 
   return data.map((c, i) => {
-    if (i < length) return { time: c.time, value: NaN };
+    if (i < length) return { time: c.time as any, value: NaN };
 
     const diff = data[i].close - data[i - 1].close;
     const gain = diff > 0 ? diff : 0;
@@ -451,7 +451,7 @@ function calculateRSI(data: any[], length: number): LineData[] {
     const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
     const rsiValue = 100 - 100 / (1 + rs);
 
-    return { time: c.time, value: rsiValue };
+    return { time: c.time as any, value: rsiValue };
   });
 }
 
@@ -465,14 +465,14 @@ function calculateMACD(
   const emaSlow = calculateEMA(data, slow);
 
   const macdLine = data.map((c, i) => ({
-    time: c.time,
+    time: c.time as any,
     value: emaFast[i].value! - emaSlow[i].value!,
   }));
 
   const signalLine = calculateEMA(macdLine, signal);
 
   return macdLine.map((c, i) => ({
-    time: c.time,
+    time: c.time as any,
     value: c.value! - signalLine[i].value!,
   }));
 }
@@ -487,8 +487,8 @@ function calculateBollingerBands(
 
   data.forEach((c, i) => {
     if (i < length) {
-      upper.push({ time: c.time, value: NaN });
-      lower.push({ time: c.time, value: NaN });
+      upper.push({ time: c.time as any, value: NaN });
+      lower.push({ time: c.time as any, value: NaN });
       return;
     }
 
@@ -499,8 +499,8 @@ function calculateBollingerBands(
       length;
     const std = Math.sqrt(variance);
 
-    upper.push({ time: c.time, value: mean + mult * std });
-    lower.push({ time: c.time, value: mean - mult * std });
+    upper.push({ time: c.time as any, value: mean + mult * std });
+    lower.push({ time: c.time as any, value: mean - mult * std });
   });
 
   return { upper, lower };
@@ -524,6 +524,6 @@ function calculateVWAP(data: any[]): LineData[] {
     if (vwap < minPrice) vwap = minPrice;
     if (vwap > maxPrice) vwap = maxPrice;
 
-    return { time: c.time, value: vwap };
+    return { time: c.time as any, value: vwap };
   });
-            }
+}
