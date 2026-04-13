@@ -58,6 +58,7 @@ export default function WaffleMenu() {
         >
           <div className="grid grid-cols-1 gap-4 text-sm">
 
+            {/* Home */}
             <Link
               href="/"
               className="
@@ -71,6 +72,7 @@ export default function WaffleMenu() {
               Home
             </Link>
 
+            {/* Workspace */}
             <Link
               href="/workspace"
               className="
@@ -84,6 +86,7 @@ export default function WaffleMenu() {
               Workspace
             </Link>
 
+            {/* Watchlist */}
             <Link
               href="/watchlist"
               className="
@@ -97,6 +100,7 @@ export default function WaffleMenu() {
               Watchlist
             </Link>
 
+            {/* Settings */}
             <Link
               href="/settings"
               className="
@@ -110,13 +114,27 @@ export default function WaffleMenu() {
               Settings
             </Link>
 
-            {/* THEME SWITCHER INSIDE MENU */}
+            {/* AI Analysis */}
+            <Link
+              href="/ai-analysis"
+              className="
+                p-3 rounded-lg 
+                bg-blue-600 text-white 
+                hover:bg-blue-700
+                transition font-medium
+              "
+            >
+              AI Analysis
+            </Link>
+
+            {/* Theme Switcher */}
             <button
               onClick={toggleTheme}
               className="
                 p-3 rounded-lg 
-                bg-blue-500 text-white 
-                hover:bg-blue-600 
+                bg-gray-300 dark:bg-gray-700 
+                hover:bg-gray-400 dark:hover:bg-gray-600
+                border border-gray-400 dark:border-gray-600
                 transition font-medium
               "
             >
