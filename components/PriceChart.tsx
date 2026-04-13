@@ -166,43 +166,55 @@ export default function PriceChart({
 
       const trade = json.data[0];
       const price = trade.p;
-      const volume = trade.v ?? 1;
+      const vol = trade.v ?? 1;
       const time = Math.floor(trade.t / 1000);
 
       const last = candleDataRef.current[candleDataRef.current.length - 1];
 
-      let update;
+      let candleUpdate;
 
       if (last && last.time === time) {
-        update = {
+        candleUpdate = {
           time: time as any,
           open: last.open,
           high: Math.max(last.high, price),
           low: Math.min(last.low, price),
           close: price,
-          volume: last.volume + volume,
         };
-        candleDataRef.current[candleDataRef.current.length - 1] = update;
+
+        last.volume += vol;
+        candleDataRef.current[candleDataRef.current.length - 1] = {
+          ...candleUpdate,
+          volume: last.volume,
+        };
       } else {
-        update = {
+        candleUpdate = {
           time: time as any,
           open: price,
           high: price,
           low: price,
           close: price,
-          volume,
         };
-        candleDataRef.current.push(update);
+
+        candleDataRef.current.push({
+          ...candleUpdate,
+          volume: vol,
+        });
       }
 
-      candleRef.current!.update(update);
+      // ✔ Update candle (NO volume allowed)
+      candleRef.current!.update(candleUpdate);
 
+      // ✔ Update volume histogram separately
       if (volumeRef.current) {
+        const lastCandle =
+          candleDataRef.current[candleDataRef.current.length - 1];
+
         volumeRef.current.update({
           time: time as any,
-          value: update.volume,
+          value: lastCandle.volume,
           color:
-            update.close >= update.open
+            lastCandle.close >= lastCandle.open
               ? indicatorSettings.volume.colorUp
               : indicatorSettings.volume.colorDown,
         });
@@ -526,4 +538,4 @@ function calculateVWAP(data: any[]): LineData[] {
 
     return { time: c.time as any, value: vwap };
   });
-}
+          }
