@@ -1,21 +1,22 @@
-/* app/api/live/route.ts */
-import type { NextRequest } from "next/server";
+// app/api/live/route.ts
+import { NextRequest } from "next/server";
 
-export const runtime = "edge"; // ✔ Correct for App Router
+export const runtime = "nodejs"; // ⭐ IMPORTANT: Node runtime supports WS
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const symbol = searchParams.get("symbol") || "AAPL";
   const interval = searchParams.get("interval") || "1m";
 
-  // Create WebSocket pair
-  const pair = new WebSocketPair();
-  const client = pair[0];
-  const server = pair[1];
+  // Upgrade to WebSocket
+  const upgrade = req.headers.get("upgrade") || "";
+  if (upgrade.toLowerCase() !== "websocket") {
+    return new Response("Expected WebSocket", { status: 400 });
+  }
 
-  server.accept();
+  const [client, server] = Object.values(new (require("ws").WebSocketServer)({ noServer: true }));
 
-  // Synthetic price generator (replace with real feed later)
+  // Synthetic price generator
   let lastPrice = 100 + Math.random() * 20;
   let lastVolume = 1_000_000;
 
@@ -58,11 +59,8 @@ export async function GET(req: NextRequest) {
 
   const intervalId = setInterval(sendTick, 1000);
 
-  server.addEventListener("close", () => {
-    clearInterval(intervalId);
-  });
-
-  server.addEventListener("error", () => {
+  server.on("close", () => clearInterval(intervalId));
+  server.on("error", () => {
     clearInterval(intervalId);
     try {
       server.close();
