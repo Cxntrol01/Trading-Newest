@@ -143,102 +143,77 @@ export default function PriceChart({
   }, [symbol, timeframe]);
 
   // ------------------------------------------------------------
-  // LIVE UPDATES FROM FINNHUB (BROWSER → FINNHUB DIRECT)
+  // LIVE UPDATES FROM FINNHUB
   // ------------------------------------------------------------
   useEffect(() => {
     if (!candleRef.current) return;
+
     const token = process.env.NEXT_PUBLIC_FINNHUB_API_KEY;
     if (!token) {
-      console.warn("NEXT_PUBLIC_FINNHUB_API_KEY is not set");
+      console.warn("Missing NEXT_PUBLIC_FINNHUB_API_KEY");
       return;
     }
 
     const ws = new WebSocket(`wss://ws.finnhub.io?token=${token}`);
 
     ws.onopen = () => {
-      ws.send(
-        JSON.stringify({
-          type: "subscribe",
-          symbol,
-        })
-      );
+      ws.send(JSON.stringify({ type: "subscribe", symbol }));
     };
 
     ws.onmessage = (event) => {
-      try {
-        const json = JSON.parse(event.data);
-        if (json.type !== "trade" || !json.data || !json.data.length) return;
+      const json = JSON.parse(event.data);
+      if (json.type !== "trade" || !json.data?.length) return;
 
-        // Take first trade in batch
-        const trade = json.data[0];
+      const trade = json.data[0];
+      const price = trade.p;
+      const volume = trade.v ?? 1;
+      const time = Math.floor(trade.t / 1000);
 
-        const time = Math.floor(trade.t / 1000);
-        const price = trade.p as number;
-        const volume = (trade.v ?? 1) as number;
+      const last = candleDataRef.current[candleDataRef.current.length - 1];
 
-        const last = candleDataRef.current[candleDataRef.current.length - 1];
+      let update;
 
-        let update;
-
-        if (last && last.time === time) {
-          // Update existing candle for this second
-          update = {
-            time,
-            open: last.open,
-            high: Math.max(last.high, price),
-            low: Math.min(last.low, price),
-            close: price,
-            volume: (last.volume ?? 0) + volume,
-          };
-          candleDataRef.current[candleDataRef.current.length - 1] = update;
-        } else {
-          // New candle (per second)
-          update = {
-            time,
-            open: price,
-            high: price,
-            low: price,
-            close: price,
-            volume,
-          };
-          candleDataRef.current = [...candleDataRef.current, update];
-        }
-
-        candleRef.current!.update(update);
-
-        if (volumeRef.current) {
-          volumeRef.current.update({
-            time,
-            value: update.volume,
-            color:
-              update.close >= update.open
-                ? indicatorSettings.volume.colorUp
-                : indicatorSettings.volume.colorDown,
-          });
-        }
-      } catch (e) {
-        console.error("Finnhub WS parse error", e);
+      if (last && last.time === time) {
+        update = {
+          time,
+          open: last.open,
+          high: Math.max(last.high, price),
+          low: Math.min(last.low, price),
+          close: price,
+          volume: last.volume + volume,
+        };
+        candleDataRef.current[candleDataRef.current.length - 1] = update;
+      } else {
+        update = {
+          time,
+          open: price,
+          high: price,
+          low: price,
+          close: price,
+          volume,
+        };
+        candleDataRef.current.push(update);
       }
-    };
 
-    ws.onerror = () => {
-      try {
-        ws.close();
-      } catch {}
+      candleRef.current!.update(update);
+
+      if (volumeRef.current) {
+        volumeRef.current.update({
+          time,
+          value: update.volume,
+          color:
+            update.close >= update.open
+              ? indicatorSettings.volume.colorUp
+              : indicatorSettings.volume.colorDown,
+        });
+      }
     };
 
     return () => {
       try {
-        ws.send(
-          JSON.stringify({
-            type: "unsubscribe",
-            symbol,
-          })
-        );
+        ws.send(JSON.stringify({ type: "unsubscribe", symbol }));
       } catch {}
-      try {
-        ws.close();
-      } catch {}
+      ws.close();
     };
   }, [symbol]);
 
@@ -551,4 +526,4 @@ function calculateVWAP(data: any[]): LineData[] {
 
     return { time: c.time, value: vwap };
   });
-}
+            }
