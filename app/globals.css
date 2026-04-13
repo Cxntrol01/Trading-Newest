@@ -2,77 +2,50 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Theme-aware body */
 body {
-  @apply bg-black text-white;
+  @apply bg-white text-black dark:bg-black dark:text-white transition-colors duration-300;
 }
 
-/* ----------------------------------------------------------
-   ⭐ Global Animation Utilities
-   ---------------------------------------------------------- */
+/* Animations */
 @layer utilities {
 
-  /* Fade-in overlay animation */
   @keyframes fadeIn {
     from { opacity: 0 }
     to { opacity: 1 }
   }
-
   .animate-fadeIn {
     animation: fadeIn 0.25s ease-out forwards;
   }
 
-  /* Slide-up modal animation (original) */
   @keyframes slideUp {
     from { opacity: 0; transform: translateY(20px) }
     to { opacity: 1; transform: translateY(0) }
   }
-
   .animate-slideUp {
     animation: slideUp 0.25s ease-out forwards;
   }
 
-  /* Animated scrolling ticker */
   @keyframes tickerScroll {
     0% { transform: translateX(100%) }
     100% { transform: translateX(-100%) }
   }
-
   .animate-ticker {
     animation: tickerScroll 18s linear infinite;
   }
 
-  /* ----------------------------------------------------------
-     ⭐ Waffle Menu Animations
-     ---------------------------------------------------------- */
-
-  /* Slide-down for waffle menu */
   @keyframes slideDownMenu {
-    from {
-      opacity: 0;
-      transform: translateY(-12px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(-12px) }
+    to { opacity: 1; transform: translateY(0) }
   }
-
   .animate-slideDownMenu {
     animation: slideDownMenu 0.25s ease-out forwards;
   }
 
-  /* Slide-up for waffle menu */
   @keyframes slideUpMenu {
-    from {
-      opacity: 1;
-      transform: translateY(0);
-    }
-    to {
-      opacity: 0;
-      transform: translateY(-12px);
-    }
+    from { opacity: 1; transform: translateY(0) }
+    to { opacity: 0; transform: translateY(-12px) }
   }
-
   .animate-slideUpMenu {
     animation: slideUpMenu 0.25s ease-in forwards;
   }
