@@ -2,19 +2,20 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { useTheme } from "./ThemeProvider";
 
 export default function WaffleMenu() {
   const [open, setOpen] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   const toggleMenu = () => {
     if (open) {
-      // Trigger slide-up animation
       setIsClosing(true);
       setTimeout(() => {
         setOpen(false);
         setIsClosing(false);
-      }, 250); // match animation duration
+      }, 250);
     } else {
       setOpen(true);
     }
@@ -27,16 +28,17 @@ export default function WaffleMenu() {
         onClick={toggleMenu}
         className="
           p-3 rounded-xl 
-          bg-gray-900/95 border border-gray-700 
-          hover:bg-gray-800 transition shadow-xl
+          bg-gray-200 dark:bg-gray-900 
+          border border-gray-400 dark:border-gray-700
+          hover:bg-gray-300 dark:hover:bg-gray-800
+          transition shadow-xl
         "
       >
-        {/* Tiny clean dots */}
         <div className="grid grid-cols-3 gap-1">
           {[...Array(9)].map((_, i) => (
             <span
               key={i}
-              className="w-1.5 h-1.5 bg-white/90 rounded-sm"
+              className="w-1.5 h-1.5 bg-black dark:bg-white rounded-sm"
             ></span>
           ))}
         </div>
@@ -47,9 +49,10 @@ export default function WaffleMenu() {
         <div
           className={`
             fixed top-20 left-4 w-64 
-            bg-black/95 backdrop-blur-xl 
-            border border-gray-700 rounded-2xl 
-            shadow-2xl p-5 z-[99999]
+            bg-white/90 dark:bg-black/95 
+            backdrop-blur-xl 
+            border border-gray-300 dark:border-gray-700 
+            rounded-2xl shadow-2xl p-5 z-[99999]
             ${isClosing ? "animate-slideUpMenu" : "animate-slideDownMenu"}
           `}
         >
@@ -58,8 +61,11 @@ export default function WaffleMenu() {
             <Link
               href="/"
               className="
-                p-3 rounded-lg bg-gray-800/80 hover:bg-gray-700 
-                transition border border-gray-700 text-white font-medium
+                p-3 rounded-lg 
+                bg-gray-200 dark:bg-gray-800 
+                hover:bg-gray-300 dark:hover:bg-gray-700
+                border border-gray-300 dark:border-gray-700
+                transition font-medium
               "
             >
               Home
@@ -68,8 +74,11 @@ export default function WaffleMenu() {
             <Link
               href="/workspace"
               className="
-                p-3 rounded-lg bg-gray-800/80 hover:bg-gray-700 
-                transition border border-gray-700 text-white font-medium
+                p-3 rounded-lg 
+                bg-gray-200 dark:bg-gray-800 
+                hover:bg-gray-300 dark:hover:bg-gray-700
+                border border-gray-300 dark:border-gray-700
+                transition font-medium
               "
             >
               Workspace
@@ -78,8 +87,11 @@ export default function WaffleMenu() {
             <Link
               href="/watchlist"
               className="
-                p-3 rounded-lg bg-gray-800/80 hover:bg-gray-700 
-                transition border border-gray-700 text-white font-medium
+                p-3 rounded-lg 
+                bg-gray-200 dark:bg-gray-800 
+                hover:bg-gray-300 dark:hover:bg-gray-700
+                border border-gray-300 dark:border-gray-700
+                transition font-medium
               "
             >
               Watchlist
@@ -88,12 +100,28 @@ export default function WaffleMenu() {
             <Link
               href="/settings"
               className="
-                p-3 rounded-lg bg-gray-800/80 hover:bg-gray-700 
-                transition border border-gray-700 text-white font-medium
+                p-3 rounded-lg 
+                bg-gray-200 dark:bg-gray-800 
+                hover:bg-gray-300 dark:hover:bg-gray-700
+                border border-gray-300 dark:border-gray-700
+                transition font-medium
               "
             >
               Settings
             </Link>
+
+            {/* THEME SWITCHER INSIDE MENU */}
+            <button
+              onClick={toggleTheme}
+              className="
+                p-3 rounded-lg 
+                bg-blue-500 text-white 
+                hover:bg-blue-600 
+                transition font-medium
+              "
+            >
+              Switch to {theme === "dark" ? "Light" : "Dark"} Mode
+            </button>
 
           </div>
         </div>
