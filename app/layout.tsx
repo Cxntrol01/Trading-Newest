@@ -1,9 +1,9 @@
 import "./globals.css";
 import type { ReactNode } from "react";
+
 import { ThemeProvider } from "@/components/ThemeProvider";
-import WaffleMenu from "@/components/WaffleMenu";
 import TopBar from "@/components/TopBar";
-import BottomNav from "@/components/BottomNav";
+import WaffleMenu from "@/components/WaffleMenu";
 import PageTransition from "@/components/PageTransition";
 
 export const metadata = {
@@ -16,19 +16,19 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en">
       <body className="relative bg-black text-white">
         <ThemeProvider>
-          {/* Global top bar + waffle */}
+          {/* Global top bar */}
           <TopBar />
+
+          {/* Global waffle menu (always on top) */}
           <WaffleMenu />
 
-          {/* Page transition wrapper */}
+          {/* Page transitions */}
           <PageTransition>
-            <main className="pt-16 pb-16">
+            {/* Push content below the top bar */}
+            <main className="pt-16">
               {children}
             </main>
           </PageTransition>
-
-          {/* Global bottom nav */}
-          <BottomNav />
         </ThemeProvider>
       </body>
     </html>
