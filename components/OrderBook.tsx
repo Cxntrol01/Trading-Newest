@@ -60,5 +60,40 @@ export default function OrderBook({ symbol }: { symbol: string }) {
       <h2 className="text-lg font-semibold mb-2">Order Book</h2>
 
       <div className="grid grid-cols-2 gap-4">
+
         {/* BIDS */}
         <div>
+          <h3 className="text-green-400 font-medium mb-1">Bids</h3>
+          <div className="space-y-1">
+            {bids.map((b, i) => (
+              <div
+                key={i}
+                className="flex justify-between text-sm bg-green-900/20 px-2 py-1 rounded"
+              >
+                <span>{b.price.toFixed(2)}</span>
+                <span>{b.size}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ASKS */}
+        <div>
+          <h3 className="text-red-400 font-medium mb-1">Asks</h3>
+          <div className="space-y-1">
+            {asks.map((a, i) => (
+              <div
+                key={i}
+                className="flex justify-between text-sm bg-red-900/20 px-2 py-1 rounded"
+              >
+                <span>{a.price.toFixed(2)}</span>
+                <span>{a.size}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
