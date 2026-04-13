@@ -14,7 +14,15 @@ export default function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-[9000] bg-black/90 backdrop-blur-xl border-t border-gray-800 h-14 flex items-center justify-around">
+    <nav
+      className="
+        fixed bottom-0 left-0 right-0 z-[9000]
+        bg-white/80 dark:bg-black/90
+        backdrop-blur-xl
+        border-t border-gray-300 dark:border-gray-800
+        h-14 flex items-center justify-around
+      "
+    >
       {items.map((item) => {
         const active = pathname === item.href;
         return (
@@ -23,7 +31,7 @@ export default function BottomNav() {
             href={item.href}
             className={`
               flex flex-col items-center justify-center text-[11px]
-              ${active ? "text-blue-400" : "text-gray-400"}
+              ${active ? "text-blue-500" : "text-gray-500 dark:text-gray-400"}
             `}
           >
             <span
