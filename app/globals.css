@@ -21,7 +21,7 @@ body {
     animation: fadeIn 0.25s ease-out forwards;
   }
 
-  /* Slide-up modal animation (your original one) */
+  /* Slide-up modal animation (original) */
   @keyframes slideUp {
     from { opacity: 0; transform: translateY(20px) }
     to { opacity: 1; transform: translateY(0) }
@@ -42,7 +42,7 @@ body {
   }
 
   /* ----------------------------------------------------------
-     ⭐ Waffle Menu Animations (NEW)
+     ⭐ Waffle Menu Animations
      ---------------------------------------------------------- */
 
   /* Slide-down for waffle menu */
