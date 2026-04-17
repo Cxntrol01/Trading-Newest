@@ -10,36 +10,21 @@ import {
   HistogramData,
 } from "lightweight-charts";
 
-type IntervalMap = Record<string, string>;
-
-const intervalMap: IntervalMap = {
-  "1m": "1",
-  "5m": "5",
-  "15m": "15",
-  "30m": "30",
-  "1H": "60",
-  "1D": "D",
-};
-
-type IndicatorSettings = {
-  sma: { length: number; color: string; width: number };
-  ema: { length: number; color: string; width: number };
-  rsi: { length: number; color: string };
-  macd: { fast: number; slow: number; signal: number; color: string };
-  bb: { length: number; mult: number; color: string };
-  vwap: { color: string; width: number };
-  volume: { colorUp: string; colorDown: string };
-};
-
+// ------------------------------------------------------------
+// TYPES
+// ------------------------------------------------------------
 type Indicators = {
   sma: boolean;
   ema: boolean;
   rsi: boolean;
   macd: boolean;
-  bb: boolean;
   vwap: boolean;
+  bb: boolean;
   volume: boolean;
+  volumeMA: boolean;
 };
+
+type IndicatorSettings = any;
 
 type PriceChartProps = {
   symbol: string;
@@ -48,6 +33,18 @@ type PriceChartProps = {
   indicatorSettings: IndicatorSettings;
 };
 
+const intervalMap: Record<string, string> = {
+  "1m": "1",
+  "5m": "5",
+  "15m": "15",
+  "30m": "30",
+  "1H": "60",
+  "1D": "D",
+};
+
+// ------------------------------------------------------------
+// LIVE CANDLE ENGINE
+// ------------------------------------------------------------
 type LiveCandle = {
   time: number;
   open: number;
@@ -101,7 +98,7 @@ class LiveCandleEngine {
 }
 
 // ------------------------------------------------------------
-// INDICATOR CALCS (from your snippets)
+// INDICATOR CALCULATIONS (your original code)
 // ------------------------------------------------------------
 function calculateSMA(data: any[], length: number): LineData[] {
   const result: LineData[] = [];
@@ -247,8 +244,10 @@ export default function PriceChart({
 }: PriceChartProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
+
   const candleRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const volumeRef = useRef<ISeriesApi<"Histogram"> | null>(null);
+
   const smaRef = useRef<ISeriesApi<"Line"> | null>(null);
   const emaRef = useRef<ISeriesApi<"Line"> | null>(null);
   const rsiRef = useRef<ISeriesApi<"Line"> | null>(null);
@@ -360,8 +359,7 @@ export default function PriceChart({
           volumeRef.current.setData(volumeData);
         }
 
-        // Indicators on historical
-        const chart = chartRef.current!;
+        // Reset indicators
         smaRef.current?.setData([]);
         emaRef.current?.setData([]);
         rsiRef.current?.setData([]);
@@ -369,6 +367,8 @@ export default function PriceChart({
         bbUpperRef.current?.setData([]);
         bbLowerRef.current?.setData([]);
         vwapRef.current?.setData([]);
+
+        const chart = chartRef.current!;
 
         // SMA
         if (indicators.sma) {
@@ -464,7 +464,7 @@ export default function PriceChart({
   }, [symbol, timeframe, indicators, indicatorSettings]);
 
   // ------------------------------------------------------------
-  // LIVE UPDATES FROM FINNHUB (1s / 5s / 15s / 1m)
+  // LIVE UPDATES (1s / 5s / 15s / 1m)
   // ------------------------------------------------------------
   useEffect(() => {
     if (!candleRef.current) return;
@@ -478,7 +478,6 @@ export default function PriceChart({
     const ws = new WebSocket(`wss://ws.finnhub.io?token=${token}`);
     const engine = new LiveCandleEngine();
 
-    // Map UI timeframe → live frame
     const tfMap: Record<string, "1s" | "5s" | "15s" | "1m"> = {
       "1m": "1s",
       "5m": "5s",
@@ -491,7 +490,6 @@ export default function PriceChart({
     const activeFrame = tfMap[timeframe] ?? "1m";
 
     engine.on(activeFrame, (c) => {
-      // main candles
       candleRef.current?.update({
         time: c.time as any,
         open: c.open,
@@ -500,7 +498,6 @@ export default function PriceChart({
         close: c.close,
       });
 
-      // live volume
       if (volumeRef.current) {
         volumeRef.current.update({
           time: c.time as any,
@@ -512,7 +509,6 @@ export default function PriceChart({
         });
       }
 
-      // simple live VWAP hook (can refine later)
       if (indicators.vwap && vwapRef.current) {
         const typical = (c.high + c.low + c.close) / 3;
         vwapRef.current.update({
@@ -538,17 +534,13 @@ export default function PriceChart({
       });
     };
 
-    ws.onerror = (err) => {
-      console.error("Finnhub WS error", err);
-    };
-
     return () => {
       try {
         ws.send(JSON.stringify({ type: "unsubscribe", symbol }));
       } catch {}
       ws.close();
     };
-  }, [symbol, timeframe, indicators.vwap, indicatorSettings.volume, indicatorSettings.vwap]);
+  }, [symbol, timeframe, indicators.vwap, indicatorSettings.volume]);
 
   return <div ref={containerRef} className="w-full h-full" />;
-    }
+}
