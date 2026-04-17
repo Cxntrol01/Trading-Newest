@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 
-const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY;
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+const FINNHUB_API_KEY = process.env.NEXT_PUBLIC_FINNHUB_API_KEY;
 
 const IMPORTANT_KEYWORDS = [
   "Fed",
@@ -39,7 +42,7 @@ export async function GET() {
 
   try {
     const url = `https://finnhub.io/api/v1/news?category=general&token=${FINNHUB_API_KEY}`;
-    const res = await fetch(url, { next: { revalidate: 60 } });
+    const res = await fetch(url);
 
     if (!res.ok) {
       throw new Error(`Finnhub error: ${res.status}`);
