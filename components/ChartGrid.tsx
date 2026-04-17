@@ -176,6 +176,7 @@ export default function ChartGrid() {
                 <SymbolSearch onSelect={(s) => updateSymbol(i, s)} />
               </div>
 
+              {/* ⭐ Updated timeframe dropdown (added 1m) */}
               <select
                 value={chart.timeframe}
                 onChange={(e) => updateTimeframe(i, e.target.value)}
@@ -186,6 +187,7 @@ export default function ChartGrid() {
                 <option value="30m">30m</option>
                 <option value="15m">15m</option>
                 <option value="5m">5m</option>
+                <option value="1m">1m</option> {/* ⭐ NEW LIVE TIMEFRAME */}
               </select>
             </div>
 
