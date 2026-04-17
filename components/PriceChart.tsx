@@ -6,465 +6,161 @@ import {
   IChartApi,
   ISeriesApi,
   LineData,
+  CandlestickData,
   HistogramData,
-  CrosshairMode,
 } from "lightweight-charts";
+
+type IntervalMap = Record<string, string>;
+
+const intervalMap: IntervalMap = {
+  "1m": "1",
+  "5m": "5",
+  "15m": "15",
+  "30m": "30",
+  "1H": "60",
+  "1D": "D",
+};
+
+type IndicatorSettings = {
+  sma: { length: number; color: string; width: number };
+  ema: { length: number; color: string; width: number };
+  rsi: { length: number; color: string };
+  macd: { fast: number; slow: number; signal: number; color: string };
+  bb: { length: number; mult: number; color: string };
+  vwap: { color: string; width: number };
+  volume: { colorUp: string; colorDown: string };
+};
 
 type Indicators = {
   sma: boolean;
   ema: boolean;
   rsi: boolean;
   macd: boolean;
-  vwap: boolean;
   bb: boolean;
+  vwap: boolean;
   volume: boolean;
-  volumeMA: boolean;
 };
 
-export default function PriceChart({
-  symbol,
-  timeframe,
-  indicators,
-  indicatorSettings,
-}: {
+type PriceChartProps = {
   symbol: string;
   timeframe: string;
   indicators: Indicators;
-  indicatorSettings: any;
-}) {
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const chartRef = useRef<IChartApi | null>(null);
+  indicatorSettings: IndicatorSettings;
+};
 
-  const candleRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
-  const volumeRef = useRef<ISeriesApi<"Histogram"> | null>(null);
-  const volumeMARef = useRef<ISeriesApi<"Line"> | null>(null);
+type LiveCandle = {
+  time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+};
 
-  const smaRef = useRef<ISeriesApi<"Line"> | null>(null);
-  const emaRef = useRef<ISeriesApi<"Line"> | null>(null);
-  const rsiRef = useRef<ISeriesApi<"Line"> | null>(null);
-  const macdRef = useRef<ISeriesApi<"Line"> | null>(null);
-  const bbUpperRef = useRef<ISeriesApi<"Line"> | null>(null);
-  const bbLowerRef = useRef<ISeriesApi<"Line"> | null>(null);
-  const vwapRef = useRef<ISeriesApi<"Line"> | null>(null);
+class LiveCandleEngine {
+  private candles: Record<string, LiveCandle | null> = {};
+  private callbacks: Record<string, (c: LiveCandle) => void> = {};
 
-  const candleDataRef = useRef<any[]>([]);
+  on(tf: "1s" | "5s" | "15s" | "1m", cb: (c: LiveCandle) => void) {
+    this.callbacks[tf] = cb;
+  }
 
-  const intervalMap: Record<string, string> = {
-    "1D": "1d",
-    "1H": "1h",
-    "30m": "30m",
-    "15m": "15m",
-    "5m": "5m",
-  };
-
-  // ------------------------------------------------------------
-  // CREATE CHART
-  // ------------------------------------------------------------
-  useEffect(() => {
-    if (!containerRef.current) return;
-
-    const chart = createChart(containerRef.current, {
-      layout: { background: { color: "#000" }, textColor: "#d1d5db" },
-      grid: {
-        vertLines: { color: "#1f2937" },
-        horzLines: { color: "#1f2937" },
-      },
-      crosshair: { mode: CrosshairMode.Normal },
-      width: containerRef.current.clientWidth,
-      height: containerRef.current.clientHeight,
-    });
-
-    chartRef.current = chart;
-
-    candleRef.current = chart.addCandlestickSeries();
-
-    volumeRef.current = chart.addHistogramSeries({
-      priceFormat: { type: "volume" },
-      priceScaleId: "volume",
-    });
-
-    chart.priceScale("volume").applyOptions({
-      scaleMargins: { top: 0.8, bottom: 0 },
-    });
-
-    const resizeObserver = new ResizeObserver(() => {
-      if (containerRef.current && chartRef.current) {
-        chartRef.current.applyOptions({
-          width: containerRef.current.clientWidth,
-          height: containerRef.current.clientHeight,
-        });
-      }
-    });
-
-    resizeObserver.observe(containerRef.current);
-
-    return () => {
-      resizeObserver.disconnect();
-      chart.remove();
+  pushTrade(price: number, size: number, ts: number) {
+    const frames = {
+      "1s": ts - (ts % 1),
+      "5s": ts - (ts % 5),
+      "15s": ts - (ts % 15),
+      "1m": ts - (ts % 60),
     };
-  }, []);
 
-  // ------------------------------------------------------------
-  // FETCH HISTORICAL CANDLES
-  // ------------------------------------------------------------
-  useEffect(() => {
-    if (!chartRef.current || !candleRef.current) return;
+    (Object.keys(frames) as Array<"1s" | "5s" | "15s" | "1m">).forEach(
+      (tf) => {
+        const bucket = frames[tf];
 
-    fetch(
-      `/api/candles?symbol=${symbol}&interval=${intervalMap[timeframe]}&range=1mo`
-    )
-      .then((res) => res.json())
-      .then((raw) => {
-        const data = raw.map((c: any) => ({
-          time: c.time as any,
-          open: Number(c.open ?? c.close ?? 0),
-          high: Number(c.high ?? c.close ?? 0),
-          low: Number(c.low ?? c.close ?? 0),
-          close: Number(c.close ?? c.open ?? 0),
-          volume: Number(c.volume ?? 1),
-        }));
-
-        candleDataRef.current = data;
-        candleRef.current!.setData(data);
-
-        const volumeData: HistogramData[] = data.map((c: any) => ({
-          time: c.time as any,
-          value: c.volume,
-          color:
-            c.close >= c.open
-              ? indicatorSettings.volume.colorUp
-              : indicatorSettings.volume.colorDown,
-        }));
-
-        if (volumeRef.current) {
-          volumeRef.current.setData(volumeData);
+        if (!this.candles[tf] || this.candles[tf]!.time !== bucket) {
+          this.candles[tf] = {
+            time: bucket,
+            open: price,
+            high: price,
+            low: price,
+            close: price,
+            volume: size,
+          };
+        } else {
+          const c = this.candles[tf]!;
+          c.high = Math.max(c.high, price);
+          c.low = Math.min(c.low, price);
+          c.close = price;
+          c.volume += size;
         }
-      });
-  }, [symbol, timeframe]);
 
-  // ------------------------------------------------------------
-  // LIVE UPDATES FROM FINNHUB
-  // ------------------------------------------------------------
-  useEffect(() => {
-    if (!candleRef.current) return;
-
-    const token = process.env.NEXT_PUBLIC_FINNHUB_API_KEY;
-    if (!token) {
-      console.warn("Missing NEXT_PUBLIC_FINNHUB_API_KEY");
-      return;
-    }
-
-    const ws = new WebSocket(`wss://ws.finnhub.io?token=${token}`);
-
-    ws.onopen = () => {
-      ws.send(JSON.stringify({ type: "subscribe", symbol }));
-    };
-
-    ws.onmessage = (event) => {
-      const json = JSON.parse(event.data);
-      if (json.type !== "trade" || !json.data?.length) return;
-
-      const trade = json.data[0];
-      const price = trade.p;
-      const vol = trade.v ?? 1;
-      const time = Math.floor(trade.t / 1000);
-
-      const last = candleDataRef.current[candleDataRef.current.length - 1];
-
-      let candleUpdate;
-
-      if (last && last.time === time) {
-        candleUpdate = {
-          time: time as any,
-          open: last.open,
-          high: Math.max(last.high, price),
-          low: Math.min(last.low, price),
-          close: price,
-        };
-
-        last.volume += vol;
-        candleDataRef.current[candleDataRef.current.length - 1] = {
-          ...candleUpdate,
-          volume: last.volume,
-        };
-      } else {
-        candleUpdate = {
-          time: time as any,
-          open: price,
-          high: price,
-          low: price,
-          close: price,
-        };
-
-        candleDataRef.current.push({
-          ...candleUpdate,
-          volume: vol,
-        });
+        this.callbacks[tf]?.(this.candles[tf]!);
       }
-
-      // ✔ Update candle (NO volume allowed)
-      candleRef.current!.update(candleUpdate);
-
-      // ✔ Update volume histogram separately
-      if (volumeRef.current) {
-        const lastCandle =
-          candleDataRef.current[candleDataRef.current.length - 1];
-
-        volumeRef.current.update({
-          time: time as any,
-          value: lastCandle.volume,
-          color:
-            lastCandle.close >= lastCandle.open
-              ? indicatorSettings.volume.colorUp
-              : indicatorSettings.volume.colorDown,
-        });
-      }
-    };
-
-    return () => {
-      try {
-        ws.send(JSON.stringify({ type: "unsubscribe", symbol }));
-      } catch {}
-      ws.close();
-    };
-  }, [symbol]);
-
-  // ------------------------------------------------------------
-  // INDICATORS
-  // ------------------------------------------------------------
-  useEffect(() => {
-    if (!chartRef.current) return;
-
-    const chart = chartRef.current;
-    const data = candleDataRef.current;
-
-    if (!data.length) return;
-
-    [
-      smaRef,
-      emaRef,
-      rsiRef,
-      macdRef,
-      bbUpperRef,
-      bbLowerRef,
-      vwapRef,
-      volumeMARef,
-    ].forEach((ref) => {
-      if (ref.current) {
-        chart.removeSeries(ref.current);
-        ref.current = null;
-      }
-    });
-
-    // Volume toggle
-    if (!indicators.volume && volumeRef.current) {
-      chart.removeSeries(volumeRef.current);
-      volumeRef.current = null;
-    }
-
-    if (indicators.volume && volumeRef.current === null) {
-      volumeRef.current = chart.addHistogramSeries({
-        priceFormat: { type: "volume" },
-        priceScaleId: "volume",
-      });
-
-      chart.priceScale("volume").applyOptions({
-        scaleMargins: { top: 0.8, bottom: 0 },
-      });
-
-      const volumeData = data.map((c: any) => ({
-        time: c.time as any,
-        value: c.volume,
-        color:
-          c.close >= c.open
-            ? indicatorSettings.volume.colorUp
-            : indicatorSettings.volume.colorDown,
-      }));
-
-      volumeRef.current.setData(volumeData);
-    }
-
-    // Volume MA
-    if (indicators.volumeMA) {
-      const { length, color, width } = indicatorSettings.volumeMA;
-
-      volumeMARef.current = chart.addLineSeries({
-        color,
-        lineWidth: width,
-        priceScaleId: "volume",
-      });
-
-      const maData = calculateVolumeMA(data, length);
-      volumeMARef.current.setData(maData);
-    }
-
-    // Bollinger Bands
-    if (indicators.bb) {
-      const { length, mult, color } = indicatorSettings.bb;
-      const bb = calculateBollingerBands(data, length, mult);
-
-      bbUpperRef.current = chart.addLineSeries({
-        color,
-        lineWidth: 1,
-        priceScaleId: "right",
-      });
-      bbLowerRef.current = chart.addLineSeries({
-        color,
-        lineWidth: 1,
-        priceScaleId: "right",
-      });
-
-      bbUpperRef.current.setData(bb.upper);
-      bbLowerRef.current.setData(bb.lower);
-    }
-
-    // VWAP
-    if (indicators.vwap) {
-      const { color, width } = indicatorSettings.vwap;
-
-      vwapRef.current = chart.addLineSeries({
-        color,
-        lineWidth: width,
-        priceScaleId: "right",
-      });
-
-      vwapRef.current.setData(calculateVWAP(data));
-    }
-
-    // SMA
-    if (indicators.sma) {
-      const { length, color, width } = indicatorSettings.sma;
-
-      smaRef.current = chart.addLineSeries({
-        color,
-        lineWidth: width,
-        priceScaleId: "right",
-      });
-
-      smaRef.current.setData(calculateSMA(data, length));
-    }
-
-    // EMA
-    if (indicators.ema) {
-      const { length, color, width } = indicatorSettings.ema;
-
-      emaRef.current = chart.addLineSeries({
-        color,
-        lineWidth: width,
-        priceScaleId: "right",
-      });
-
-      emaRef.current.setData(calculateEMA(data, length));
-    }
-
-    // RSI
-    if (indicators.rsi) {
-      const { length, color } = indicatorSettings.rsi;
-
-      chart.priceScale("rsi").applyOptions({
-        scaleMargins: { top: 0.8, bottom: 0 },
-      });
-
-      rsiRef.current = chart.addLineSeries({
-        color,
-        lineWidth: 2,
-        priceScaleId: "rsi",
-      });
-
-      rsiRef.current.setData(calculateRSI(data, length));
-    }
-
-    // MACD
-    if (indicators.macd) {
-      const { fast, slow, signal, color } = indicatorSettings.macd;
-
-      chart.priceScale("macd").applyOptions({
-        scaleMargins: { top: 0.6, bottom: 0 },
-      });
-
-      macdRef.current = chart.addLineSeries({
-        color,
-        lineWidth: 2,
-        priceScaleId: "macd",
-      });
-
-      macdRef.current.setData(calculateMACD(data, fast, slow, signal));
-    }
-  }, [JSON.stringify(indicators), JSON.stringify(indicatorSettings)]);
-
-  return (
-    <div
-      ref={containerRef}
-      className="w-full h-full bg-black rounded-lg overflow-hidden"
-    />
-  );
+    );
+  }
 }
 
 // ------------------------------------------------------------
-// INDICATOR CALCULATIONS
+// INDICATOR CALCS (from your snippets)
 // ------------------------------------------------------------
-
-function calculateVolumeMA(data: any[], length: number): LineData[] {
-  return data.map((c, i) => {
-    if (i < length) return { time: c.time as any, value: NaN };
-
-    const slice = data.slice(i - length, i);
-    const avg =
-      slice.reduce((sum, x) => sum + (x.volume ?? 0), 0) / length;
-
-    return { time: c.time as any, value: avg };
-  });
-}
-
 function calculateSMA(data: any[], length: number): LineData[] {
-  return data.map((c, i) => {
-    if (i < length) return { time: c.time as any, value: NaN };
-    const slice = data.slice(i - length, i);
-    const avg = slice.reduce((sum, x) => sum + x.close, 0) / length;
-    return { time: c.time as any, value: avg };
+  const result: LineData[] = [];
+  let sum = 0;
+
+  data.forEach((c, i) => {
+    sum += c.close;
+    if (i >= length) sum -= data[i - length].close;
+
+    if (i < length - 1) {
+      result.push({ time: c.time as any, value: NaN });
+    } else {
+      result.push({ time: c.time as any, value: sum / length });
+    }
   });
+
+  return result;
 }
 
 function calculateEMA(data: any[], length: number): LineData[] {
-  let emaPrev = data[0].close;
+  const result: LineData[] = [];
   const k = 2 / (length + 1);
+  let ema = data[0]?.close ?? 0;
 
-  return data.map((c, i) => {
-    if (i === 0) return { time: c.time as any, value: emaPrev };
-    const ema = c.close * k + emaPrev * (1 - k);
-    emaPrev = ema;
-    return { time: c.time as any, value: ema };
+  data.forEach((c) => {
+    ema = c.close * k + ema * (1 - k);
+    result.push({ time: c.time as any, value: ema });
   });
+
+  return result;
 }
 
 function calculateRSI(data: any[], length: number): LineData[] {
+  const result: LineData[] = [];
   let gains = 0;
   let losses = 0;
 
-  for (let i = 1; i <= length; i++) {
-    const diff = data[i].close - data[i - 1].close;
-    if (diff >= 0) gains += diff;
-    else losses -= diff;
-  }
+  for (let i = 1; i < data.length; i++) {
+    const change = data[i].close - data[i - 1].close;
+    if (i <= length) {
+      if (change > 0) gains += change;
+      else losses -= change;
+      result.push({ time: data[i].time as any, value: NaN });
+      continue;
+    }
 
-  let avgGain = gains / length;
-  let avgLoss = losses / length;
+    const avgGain = (gains * (length - 1) + Math.max(change, 0)) / length;
+    const avgLoss = (losses * (length - 1) + Math.max(-change, 0)) / length;
 
-  return data.map((c, i) => {
-    if (i < length) return { time: c.time as any, value: NaN };
-
-    const diff = data[i].close - data[i - 1].close;
-    const gain = diff > 0 ? diff : 0;
-    const loss = diff < 0 ? -diff : 0;
-
-    avgGain = (avgGain * (length - 1) + gain) / length;
-    avgLoss = (avgLoss * (length - 1) + loss) / length;
+    gains = avgGain;
+    losses = avgLoss;
 
     const rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
     const rsiValue = 100 - 100 / (1 + rs);
 
-    return { time: c.time as any, value: rsiValue };
-  });
+    result.push({ time: data[i].time as any, value: rsiValue });
+  }
+
+  return result;
 }
 
 function calculateMACD(
@@ -538,4 +234,321 @@ function calculateVWAP(data: any[]): LineData[] {
 
     return { time: c.time as any, value: vwap };
   });
-          }
+}
+
+// ------------------------------------------------------------
+// MAIN COMPONENT
+// ------------------------------------------------------------
+export default function PriceChart({
+  symbol,
+  timeframe,
+  indicators,
+  indicatorSettings,
+}: PriceChartProps) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const chartRef = useRef<IChartApi | null>(null);
+  const candleRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const volumeRef = useRef<ISeriesApi<"Histogram"> | null>(null);
+  const smaRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const emaRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const rsiRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const macdRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const bbUpperRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const bbLowerRef = useRef<ISeriesApi<"Line"> | null>(null);
+  const vwapRef = useRef<ISeriesApi<"Line"> | null>(null);
+
+  const candleDataRef = useRef<CandlestickData[]>([]);
+
+  // ------------------------------------------------------------
+  // INIT CHART
+  // ------------------------------------------------------------
+  useEffect(() => {
+    if (!containerRef.current) return;
+
+    const chart = createChart(containerRef.current, {
+      layout: {
+        background: { color: "#020617" },
+        textColor: "#e5e7eb",
+      },
+      grid: {
+        vertLines: { color: "#111827" },
+        horzLines: { color: "#111827" },
+      },
+      rightPriceScale: {
+        borderColor: "#1f2937",
+      },
+      timeScale: {
+        borderColor: "#1f2937",
+      },
+    });
+
+    chartRef.current = chart;
+
+    const candleSeries = chart.addCandlestickSeries({
+      upColor: "#22c55e",
+      downColor: "#ef4444",
+      borderUpColor: "#22c55e",
+      borderDownColor: "#ef4444",
+      wickUpColor: "#22c55e",
+      wickDownColor: "#ef4444",
+    });
+
+    candleRef.current = candleSeries;
+
+    const volumeSeries = chart.addHistogramSeries({
+      priceFormat: { type: "volume" },
+      priceScaleId: "volume",
+      color: "#4b5563",
+    });
+
+    volumeRef.current = volumeSeries;
+
+    chart.priceScale("volume").applyOptions({
+      scaleMargins: { top: 0.8, bottom: 0 },
+    });
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (containerRef.current && chartRef.current) {
+        chartRef.current.applyOptions({
+          width: containerRef.current.clientWidth,
+          height: containerRef.current.clientHeight,
+        });
+      }
+    });
+
+    resizeObserver.observe(containerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+      chart.remove();
+    };
+  }, []);
+
+  // ------------------------------------------------------------
+  // FETCH HISTORICAL CANDLES
+  // ------------------------------------------------------------
+  useEffect(() => {
+    if (!chartRef.current || !candleRef.current) return;
+
+    fetch(
+      `/api/candles?symbol=${symbol}&interval=${intervalMap[timeframe]}&range=1mo`
+    )
+      .then((res) => res.json())
+      .then((raw) => {
+        const data = raw.map((c: any) => ({
+          time: c.time as any,
+          open: Number(c.open ?? c.close ?? 0),
+          high: Number(c.high ?? c.close ?? 0),
+          low: Number(c.low ?? c.close ?? 0),
+          close: Number(c.close ?? c.open ?? 0),
+          volume: Number(c.volume ?? 1),
+        }));
+
+        candleDataRef.current = data;
+        candleRef.current!.setData(data);
+
+        const volumeData: HistogramData[] = data.map((c: any) => ({
+          time: c.time as any,
+          value: c.volume,
+          color:
+            c.close >= c.open
+              ? indicatorSettings.volume.colorUp
+              : indicatorSettings.volume.colorDown,
+        }));
+
+        if (volumeRef.current) {
+          volumeRef.current.setData(volumeData);
+        }
+
+        // Indicators on historical
+        const chart = chartRef.current!;
+        smaRef.current?.setData([]);
+        emaRef.current?.setData([]);
+        rsiRef.current?.setData([]);
+        macdRef.current?.setData([]);
+        bbUpperRef.current?.setData([]);
+        bbLowerRef.current?.setData([]);
+        vwapRef.current?.setData([]);
+
+        // SMA
+        if (indicators.sma) {
+          const { length, color, width } = indicatorSettings.sma;
+          smaRef.current = chart.addLineSeries({
+            color,
+            lineWidth: width,
+            priceScaleId: "right",
+          });
+          smaRef.current.setData(calculateSMA(data, length));
+        }
+
+        // EMA
+        if (indicators.ema) {
+          const { length, color, width } = indicatorSettings.ema;
+          emaRef.current = chart.addLineSeries({
+            color,
+            lineWidth: width,
+            priceScaleId: "right",
+          });
+          emaRef.current.setData(calculateEMA(data, length));
+        }
+
+        // RSI
+        if (indicators.rsi) {
+          const { length, color } = indicatorSettings.rsi;
+
+          chart.priceScale("rsi").applyOptions({
+            scaleMargins: { top: 0.8, bottom: 0 },
+          });
+
+          rsiRef.current = chart.addLineSeries({
+            color,
+            lineWidth: 2,
+            priceScaleId: "rsi",
+          });
+
+          rsiRef.current.setData(calculateRSI(data, length));
+        }
+
+        // MACD
+        if (indicators.macd) {
+          const { fast, slow, signal, color } = indicatorSettings.macd;
+
+          macdRef.current = chart.addLineSeries({
+            color,
+            lineWidth: 2,
+            priceScaleId: "right",
+          });
+
+          macdRef.current.setData(
+            calculateMACD(data, fast, slow, signal)
+          );
+        }
+
+        // Bollinger Bands
+        if (indicators.bb) {
+          const { length, mult, color } = indicatorSettings.bb;
+          const { upper, lower } = calculateBollingerBands(
+            data,
+            length,
+            mult
+          );
+
+          bbUpperRef.current = chart.addLineSeries({
+            color,
+            lineWidth: 1,
+            priceScaleId: "right",
+          });
+          bbLowerRef.current = chart.addLineSeries({
+            color,
+            lineWidth: 1,
+            priceScaleId: "right",
+          });
+
+          bbUpperRef.current.setData(upper);
+          bbLowerRef.current.setData(lower);
+        }
+
+        // VWAP
+        if (indicators.vwap) {
+          const { color, width } = indicatorSettings.vwap;
+
+          vwapRef.current = chart.addLineSeries({
+            color,
+            lineWidth: width,
+            priceScaleId: "right",
+          });
+
+          vwapRef.current.setData(calculateVWAP(data));
+        }
+      });
+  }, [symbol, timeframe, indicators, indicatorSettings]);
+
+  // ------------------------------------------------------------
+  // LIVE UPDATES FROM FINNHUB (1s / 5s / 15s / 1m)
+  // ------------------------------------------------------------
+  useEffect(() => {
+    if (!candleRef.current) return;
+
+    const token = process.env.NEXT_PUBLIC_FINNHUB_API_KEY;
+    if (!token) {
+      console.warn("Missing NEXT_PUBLIC_FINNHUB_API_KEY");
+      return;
+    }
+
+    const ws = new WebSocket(`wss://ws.finnhub.io?token=${token}`);
+    const engine = new LiveCandleEngine();
+
+    // Map UI timeframe → live frame
+    const tfMap: Record<string, "1s" | "5s" | "15s" | "1m"> = {
+      "1m": "1s",
+      "5m": "5s",
+      "15m": "15s",
+      "30m": "1m",
+      "1H": "1m",
+      "1D": "1m",
+    };
+
+    const activeFrame = tfMap[timeframe] ?? "1m";
+
+    engine.on(activeFrame, (c) => {
+      // main candles
+      candleRef.current?.update({
+        time: c.time as any,
+        open: c.open,
+        high: c.high,
+        low: c.low,
+        close: c.close,
+      });
+
+      // live volume
+      if (volumeRef.current) {
+        volumeRef.current.update({
+          time: c.time as any,
+          value: c.volume,
+          color:
+            c.close >= c.open
+              ? indicatorSettings.volume.colorUp
+              : indicatorSettings.volume.colorDown,
+        });
+      }
+
+      // simple live VWAP hook (can refine later)
+      if (indicators.vwap && vwapRef.current) {
+        const typical = (c.high + c.low + c.close) / 3;
+        vwapRef.current.update({
+          time: c.time as any,
+          value: typical,
+        });
+      }
+    });
+
+    ws.onopen = () => {
+      ws.send(JSON.stringify({ type: "subscribe", symbol }));
+    };
+
+    ws.onmessage = (event) => {
+      const msg = JSON.parse(event.data);
+      if (msg.type !== "trade") return;
+
+      msg.data.forEach((t: any) => {
+        const price = t.p;
+        const size = t.v ?? 1;
+        const ts = Math.floor(t.t / 1000);
+        engine.pushTrade(price, size, ts);
+      });
+    };
+
+    ws.onerror = (err) => {
+      console.error("Finnhub WS error", err);
+    };
+
+    return () => {
+      try {
+        ws.send(JSON.stringify({ type: "unsubscribe", symbol }));
+      } catch {}
+      ws.close();
+    };
+  }, [symbol, timeframe, indicators.vwap, indicatorSettings.volume, indicatorSettings.vwap]);
+
+  return <div ref={containerRef} className="w-full h-full" />;
+    }
