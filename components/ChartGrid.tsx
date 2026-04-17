@@ -28,9 +28,10 @@ type ChartConfig = {
 type IndicatorKey = keyof Indicators;
 
 export default function ChartGrid() {
-  const [layout, setLayout] = useState(1);
+  // ⭐ Only allow 1 or 2 charts now
+  const [layout, setLayout] = useState<1 | 2>(1);
 
-  const indicatorMenuRef = useRef<HTMLDetailsElement | null>(null); // ⭐ NEW
+  const indicatorMenuRef = useRef<HTMLDetailsElement | null>(null);
 
   const [charts, setCharts] = useState<ChartConfig[]>([
     {
@@ -55,7 +56,7 @@ export default function ChartGrid() {
     indicator: IndicatorKey;
   } | null>(null);
 
-  const updateLayout = (count: number) => {
+  const updateLayout = (count: 1 | 2) => {
     setLayout(count);
 
     setCharts((prev) => {
@@ -124,8 +125,9 @@ export default function ChartGrid() {
   return (
     <div className="flex flex-col gap-4">
 
+      {/* ⭐ Layout buttons (4 removed) */}
       <div className="flex items-center gap-3">
-        {[1, 2, 4].map((n) => (
+        {[1, 2].map((n) => (
           <button
             key={n}
             onClick={() => updateLayout(n)}
@@ -140,6 +142,7 @@ export default function ChartGrid() {
         ))}
       </div>
 
+      {/* ⭐ Grid only supports 1 or 2 now */}
       <div
         className={`grid gap-6 ${
           layout === 1 ? "grid-cols-1" : "grid-cols-2"
@@ -198,7 +201,7 @@ export default function ChartGrid() {
                     indicators={chart.indicators}
                     onToggle={(key) => toggleIndicator(i, key)}
                     onOpenSettings={(key) => {
-                      indicatorMenuRef.current?.removeAttribute("open"); // ⭐ FIX
+                      indicatorMenuRef.current?.removeAttribute("open");
                       setOpenSettings({
                         chartIndex: i,
                         indicator: key,
