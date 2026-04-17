@@ -28,7 +28,7 @@ type ChartConfig = {
 type IndicatorKey = keyof Indicators;
 
 export default function ChartGrid() {
-  // ⭐ Only allow 1 or 2 charts now
+  // ⭐ Only allow 1 or 2 charts
   const [layout, setLayout] = useState<1 | 2>(1);
 
   const indicatorMenuRef = useRef<HTMLDetailsElement | null>(null);
@@ -125,9 +125,9 @@ export default function ChartGrid() {
   return (
     <div className="flex flex-col gap-4">
 
-      {/* ⭐ Layout buttons (4 removed) */}
+      {/* ⭐ Layout buttons (4 removed, TS-safe) */}
       <div className="flex items-center gap-3">
-        {[1, 2].map((n) => (
+        {([1, 2] as const).map((n) => (
           <button
             key={n}
             onClick={() => updateLayout(n)}
