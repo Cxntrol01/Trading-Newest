@@ -5,9 +5,8 @@ export async function GET(request: Request) {
 
   const symbol = searchParams.get("symbol") || "AAPL";
   const interval = searchParams.get("interval") || "1D";
-  const range = searchParams.get("range") || "1mo";
 
-  // Yahoo Finance interval mapping
+  // Yahoo interval mapping
   const yahooIntervalMap: Record<string, string> = {
     "1m": "1m",
     "5m": "5m",
@@ -19,14 +18,14 @@ export async function GET(request: Request) {
     "1M": "1mo",
   };
 
-  // Yahoo Finance range rules
+  // Yahoo range rules (free + max history)
   const yahooRangeMap: Record<string, string> = {
-    "1m": "1d",     // Yahoo only allows 1 day of 1m data
+    "1m": "1d",     // Yahoo only gives 1 day of 1m
     "5m": "1mo",
     "15m": "2mo",
     "30m": "2mo",
     "1H": "2y",
-    "1D": "max",
+    "1D": "max",    // Full 6+ years
     "1W": "max",
     "1M": "max",
   };
