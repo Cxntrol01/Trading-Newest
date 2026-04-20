@@ -18,20 +18,20 @@ export async function GET(request: Request) {
     "1M": "1mo",
   };
 
-  // Yahoo range rules (free + max history)
+  // Yahoo range rules
   const yahooRangeMap: Record<string, string> = {
-    "1m": "1d",     // Yahoo only gives 1 day of 1m
+    "1m": "1d",
     "5m": "1mo",
     "15m": "2mo",
     "30m": "2mo",
     "1H": "2y",
-    "1D": "max",    // Full 6+ years
-    "1W": "max",
-    "1M": "max",
+    "1D": "6y",
+    "1W": "6y",
+    "1M": "6y",
   };
 
   const yfInterval = yahooIntervalMap[interval] || "1d";
-  const yfRange = yahooRangeMap[interval] || "1mo";
+  const yfRange = yahooRangeMap[interval] || "6y";
 
   const url = `https://query1.finance.yahoo.com/v8/finance/chart/${symbol}?interval=${yfInterval}&range=${yfRange}`;
 
