@@ -1,4 +1,3 @@
-// components/ChartGrid.tsx
 "use client";
 
 import { useState, useRef } from "react";
@@ -123,6 +122,8 @@ export default function ChartGrid() {
 
   return (
     <div className="flex flex-col gap-4">
+
+      {/* Layout buttons */}
       <div className="flex items-center gap-3">
         {([1, 2] as const).map((n) => (
           <button
@@ -149,6 +150,7 @@ export default function ChartGrid() {
             key={i}
             className="border border-gray-800 rounded-lg bg-gray-900/40 h-[500px] overflow-hidden flex flex-col relative"
           >
+
             {openSettings && openSettings.chartIndex === i && (
               <IndicatorSettingsPanel
                 indicator={openSettings.indicator}
@@ -166,32 +168,33 @@ export default function ChartGrid() {
               />
             )}
 
+            {/* Header */}
             <div className="p-2 border-b border-gray-800 bg-gray-900 flex items-center gap-3">
               <div className="flex-1">
                 <SymbolSearch onSelect={(s) => updateSymbol(i, s)} />
               </div>
 
-              {/* ⭐ All timeframes */}
+              {/* ⭐ FINAL TIMEFRAME DROPDOWN */}
               <select
                 value={chart.timeframe}
                 onChange={(e) => updateTimeframe(i, e.target.value)}
                 className="bg-gray-800 text-white border border-gray-700 rounded px-2 py-1"
               >
+                {/* Intraday */}
                 <option value="1m">1m</option>
                 <option value="5m">5m</option>
                 <option value="15m">15m</option>
                 <option value="30m">30m</option>
                 <option value="1H">1H</option>
+
+                {/* Long-term */}
                 <option value="1D">1D</option>
                 <option value="1W">1W</option>
                 <option value="1M">1M</option>
-                <option value="3M">3M</option>
-                <option value="6M">6M</option>
-                <option value="YTD">YTD</option>
-                <option value="MAX">MAX</option>
               </select>
             </div>
 
+            {/* Indicators */}
             <div className="p-2 border-b border-gray-800 bg-gray-800 text-sm relative">
               <details ref={indicatorMenuRef} className="group">
                 <summary className="cursor-pointer px-3 py-1.5 bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 select-none">
@@ -214,6 +217,7 @@ export default function ChartGrid() {
               </details>
             </div>
 
+            {/* Chart */}
             <div className="flex-1">
               <PriceChart
                 symbol={chart.symbol}
@@ -222,6 +226,7 @@ export default function ChartGrid() {
                 indicatorSettings={chart.indicatorSettings}
               />
             </div>
+
           </div>
         ))}
       </div>
