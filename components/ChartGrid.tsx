@@ -1,3 +1,4 @@
+// components/ChartGrid.tsx
 "use client";
 
 import { useState, useRef } from "react";
@@ -28,9 +29,7 @@ type ChartConfig = {
 type IndicatorKey = keyof Indicators;
 
 export default function ChartGrid() {
-  // ⭐ Only allow 1 or 2 charts
   const [layout, setLayout] = useState<1 | 2>(1);
-
   const indicatorMenuRef = useRef<HTMLDetailsElement | null>(null);
 
   const [charts, setCharts] = useState<ChartConfig[]>([
@@ -124,8 +123,6 @@ export default function ChartGrid() {
 
   return (
     <div className="flex flex-col gap-4">
-
-      {/* ⭐ Layout buttons (4 removed, TS-safe) */}
       <div className="flex items-center gap-3">
         {([1, 2] as const).map((n) => (
           <button
@@ -142,7 +139,6 @@ export default function ChartGrid() {
         ))}
       </div>
 
-      {/* ⭐ Grid only supports 1 or 2 now */}
       <div
         className={`grid gap-6 ${
           layout === 1 ? "grid-cols-1" : "grid-cols-2"
@@ -153,7 +149,6 @@ export default function ChartGrid() {
             key={i}
             className="border border-gray-800 rounded-lg bg-gray-900/40 h-[500px] overflow-hidden flex flex-col relative"
           >
-
             {openSettings && openSettings.chartIndex === i && (
               <IndicatorSettingsPanel
                 indicator={openSettings.indicator}
@@ -176,23 +171,28 @@ export default function ChartGrid() {
                 <SymbolSearch onSelect={(s) => updateSymbol(i, s)} />
               </div>
 
-              {/* ⭐ Updated timeframe dropdown (added 1m) */}
+              {/* ⭐ All timeframes */}
               <select
                 value={chart.timeframe}
                 onChange={(e) => updateTimeframe(i, e.target.value)}
                 className="bg-gray-800 text-white border border-gray-700 rounded px-2 py-1"
               >
-                <option value="1D">1D</option>
-                <option value="1H">1H</option>
-                <option value="30m">30m</option>
-                <option value="15m">15m</option>
+                <option value="1m">1m</option>
                 <option value="5m">5m</option>
-                <option value="1m">1m</option> {/* ⭐ NEW LIVE TIMEFRAME */}
+                <option value="15m">15m</option>
+                <option value="30m">30m</option>
+                <option value="1H">1H</option>
+                <option value="1D">1D</option>
+                <option value="1W">1W</option>
+                <option value="1M">1M</option>
+                <option value="3M">3M</option>
+                <option value="6M">6M</option>
+                <option value="YTD">YTD</option>
+                <option value="MAX">MAX</option>
               </select>
             </div>
 
             <div className="p-2 border-b border-gray-800 bg-gray-800 text-sm relative">
-
               <details ref={indicatorMenuRef} className="group">
                 <summary className="cursor-pointer px-3 py-1.5 bg-gray-700 border border-gray-600 rounded hover:bg-gray-600 select-none">
                   Indicators ▼
@@ -212,7 +212,6 @@ export default function ChartGrid() {
                   />
                 </div>
               </details>
-
             </div>
 
             <div className="flex-1">
@@ -223,7 +222,6 @@ export default function ChartGrid() {
                 indicatorSettings={chart.indicatorSettings}
               />
             </div>
-
           </div>
         ))}
       </div>
